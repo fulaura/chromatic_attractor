@@ -1094,8 +1094,8 @@ function bindUIControls() {
   const sAbOutlineColor = document.getElementById('aberration-outline-color');
   const vAbOutlineColor = document.getElementById('val-aberration-outline-color');
 
-  const presetsGrid = document.querySelectorAll('.btn-preset');
-  
+  const sSystemProfiles = document.getElementById('system-profiles');
+
   // Handlers
   sStarCount.addEventListener('input', (e) => {
     settings.starCount = parseInt(e.target.value);
@@ -1330,12 +1330,11 @@ function bindUIControls() {
     vAbOutlineColor.innerText = settings.aberrationOutlineColor.toUpperCase();
   });
 
-  presetsGrid.forEach(btn => {
-    btn.addEventListener('click', () => {
-      presetsGrid.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      applyPreset(btn.dataset.preset);
-    });
+  sSystemProfiles.addEventListener('change', (e) => {
+    const name = e.target.value;
+    if (name) {
+      loadSystemProfile(name);
+    }
   });
 
   // Profile manager bindings
@@ -1371,20 +1370,46 @@ function bindUIControls() {
   updateLightUIVisibility(settings.lightMode);
 }
 
-// Preset applicator
-function applyPreset(presetKey) {
-  const preset = presets[presetKey];
-  if (!preset) return;
+// Dynamic Profile Loader from local templates with robust file:// fallback
+function loadSystemProfile(name) {
+  const select = document.getElementById('system-profiles');
+  if (select) select.value = name;
 
-  Object.keys(preset).forEach(key => {
-    if (key !== 'nebulaColor') {
-      settings[key] = preset[key];
+  const url = `./system_templates/${name}.json`;
+
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return res.json();
+    })
+    .then(loadedSettings => {
+      applyLoadedProfile(loadedSettings);
+      console.log(`Loaded system profile "${name}" successfully from template file.`);
+    })
+    .catch(err => {
+      console.warn(`Failed to fetch system template "${name}" from disk (possibly local file:// CORS lock). Falling back to script presets. Details:`, err.message);
+      
+      // Failsafe fallback: Load from the local presets dictionary in script.js
+      const fallbackPresetKey = name.replace('_', '-'); // e.g. deep_space -> deep-space
+      const preset = presets[fallbackPresetKey];
+      if (preset) {
+        applyLoadedProfile(preset);
+      }
+    });
+}
+
+function applyLoadedProfile(loadedSettings) {
+  Object.keys(loadedSettings).forEach(key => {
+    if (key !== 'nebulaColor' && settings[key] !== undefined) {
+      settings[key] = loadedSettings[key];
     }
   });
 
-  nebula.style.background = preset.nebulaColor;
+  if (loadedSettings.nebulaColor) {
+    nebula.style.background = loadedSettings.nebulaColor;
+  }
 
-  // Reset profile name inputs to show preset is loaded
+  // Reset custom profile name input fields to indicate template is loaded
   document.getElementById('profile-name').value = '';
   document.getElementById('saved-profiles').value = '';
 
@@ -1503,7 +1528,7 @@ function init() {
   
   populateProfilesDropdown();
   
-  nebula.style.background = presets['deep-space'].nebulaColor;
+  loadSystemProfile('deep_space');
   
   loop();
 }
