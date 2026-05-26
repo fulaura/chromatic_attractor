@@ -451,3 +451,9 @@ input:checked + .slider:before {
     left: 16px;
   }
 }
+
+/* Dynamic display utilities */
+.control-group.hidden, .section.hidden {
+  display: none !important;
+}
+

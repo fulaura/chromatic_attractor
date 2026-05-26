@@ -1,5 +1,5 @@
 // Cosmic Space-Time Canvas Simulator
-// High-performance canvas particle engine with force fields and chromatic aberration
+// Upgraded high-performance sandbox physics engine
 
 const canvas = document.getElementById('cosmic-canvas');
 const ctx = canvas.getContext('2d');
@@ -8,17 +8,32 @@ const nebula = document.getElementById('nebula');
 // Simulation Settings & Configurations
 const settings = {
   starCount: 300,
-  crossRatio: 0.25, // 25% "+" stars, 75% dot stars
+  starSizeMultiplier: 1.0, // Star size scaling factor
+  crossRatio: 0.25, // Ratio of cross flare stars
   baseSpeed: 0.4,
   twinkleActive: true,
+  
+  // Force Fields parameters
   forceType: 'repel', // repel, attract, vortex, none
   forceStrength: 1.5,
   forceRadius: 180,
+  stableRadius: 80, // Accretion disk orbital balance radius
+
+  // Spotlight / Occclusion parameters
+  lightMode: 'disabled', // disabled, spotlight, veil
+  lightRadius: 200,
+  lightSoftness: 100,
+  lightAmbient: 0.15, // Ambient ambient light minimum opacity
+
+  // Chromatic Aberration parameters
   aberrationActive: true,
+  aberrationMode: 'radial', // radial, linear-x, linear-y, rotational
+  aberrationColor: 'rgb', // rgb, cyberpunk, supernova
   aberrationRadius: 120,
   aberrationWidth: 60,
-  aberrationSplit: 8,
-  warpActive: false, // Starburst flow from center for Warp Drive preset
+  aberrationSplit: 8, // Master Shift Strength
+
+  warpActive: false, // Starburst radial flow
   colorTheme: 'deep-space' // deep-space, neon-swarm, monochrome
 };
 
@@ -31,20 +46,28 @@ const mouse = {
   isDown: false,
   isActive: false,
   sizeMultiplier: 1.0,
-  angle: 0 // Used for virtual cursor orbit
+  angle: 0 // Auto orbit lissajous phase
 };
 
 // Preset Definitions
 const presets = {
   'deep-space': {
     starCount: 300,
+    starSizeMultiplier: 1.0,
     crossRatio: 25,
     baseSpeed: 0.4,
     twinkleActive: true,
     forceType: 'repel',
     forceStrength: 1.5,
     forceRadius: 180,
+    stableRadius: 80,
+    lightMode: 'disabled',
+    lightRadius: 200,
+    lightSoftness: 100,
+    lightAmbient: 15,
     aberrationActive: true,
+    aberrationMode: 'radial',
+    aberrationColor: 'rgb',
     aberrationRadius: 120,
     aberrationWidth: 60,
     aberrationSplit: 8,
@@ -54,13 +77,21 @@ const presets = {
   },
   'warp-drive': {
     starCount: 500,
+    starSizeMultiplier: 1.2,
     crossRatio: 10,
     baseSpeed: 4.0,
     twinkleActive: false,
     forceType: 'repel',
     forceStrength: 1.0,
     forceRadius: 100,
+    stableRadius: 50,
+    lightMode: 'disabled',
+    lightRadius: 200,
+    lightSoftness: 100,
+    lightAmbient: 15,
     aberrationActive: true,
+    aberrationMode: 'radial',
+    aberrationColor: 'cyberpunk',
     aberrationRadius: 200,
     aberrationWidth: 80,
     aberrationSplit: 12,
@@ -70,29 +101,45 @@ const presets = {
   },
   'black-hole': {
     starCount: 400,
+    starSizeMultiplier: 0.9,
     crossRatio: 20,
     baseSpeed: 0.2,
     twinkleActive: true,
     forceType: 'attract',
     forceStrength: 3.5,
     forceRadius: 300,
+    stableRadius: 80,
+    lightMode: 'veil', // Eclipses starfield near singularity core
+    lightRadius: 220,
+    lightSoftness: 140,
+    lightAmbient: 10,
     aberrationActive: true,
+    aberrationMode: 'rotational', // Spiral warping
+    aberrationColor: 'supernova',
     aberrationRadius: 140,
     aberrationWidth: 100,
     aberrationSplit: 18,
     warpActive: false,
     colorTheme: 'monochrome',
-    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.03) 0%, rgba(0, 0, 0, 0) 60%)'
+    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)'
   },
   'nebula-vortex': {
     starCount: 450,
+    starSizeMultiplier: 1.1,
     crossRatio: 35,
     baseSpeed: 0.6,
     twinkleActive: true,
     forceType: 'vortex',
     forceStrength: 2.2,
     forceRadius: 250,
+    stableRadius: 120,
+    lightMode: 'spotlight', // Lights up the galaxy swirl around cursor
+    lightRadius: 250,
+    lightSoftness: 100,
+    lightAmbient: 5,
     aberrationActive: true,
+    aberrationMode: 'radial',
+    aberrationColor: 'cyberpunk',
     aberrationRadius: 160,
     aberrationWidth: 80,
     aberrationSplit: 10,
@@ -107,7 +154,7 @@ let dpr = window.devicePixelRatio || 1;
 let width = window.innerWidth;
 let height = window.innerHeight;
 
-// Initialize Canvas Sizing
+// Initialize Canvas Viewport Sizing
 function resizeCanvas() {
   dpr = window.devicePixelRatio || 1;
   width = window.innerWidth;
@@ -117,7 +164,6 @@ function resizeCanvas() {
   canvas.height = height * dpr;
   ctx.scale(dpr, dpr);
   
-  // Re-generate particles to fit new canvas size if count changed or initializing
   if (particles.length === 0) {
     createParticles();
   }
@@ -130,17 +176,14 @@ class Particle {
   }
 
   reset(fullRandom = false) {
-    // Spatial positioning
     if (fullRandom) {
       this.x = Math.random() * width;
       this.y = Math.random() * height;
     } else {
-      // If warp mode is active, spawn particles at screen center
       if (settings.warpActive) {
         this.x = width / 2 + (Math.random() - 0.5) * 50;
         this.y = height / 2 + (Math.random() - 0.5) * 50;
       } else {
-        // Linear wrap spawning: Spawn right at the boundary opposite of movement
         if (Math.random() > 0.5) {
           this.x = this.baseVx > 0 ? -10 : width + 10;
           this.y = Math.random() * height;
@@ -151,74 +194,62 @@ class Particle {
       }
     }
 
-    // Velocity vectors
     this.vx = 0;
     this.vy = 0;
     
-    // Set natural drift direction based on canvas coordinate space
     if (settings.warpActive) {
-      // Warp direction is outward from center
       const angle = Math.random() * Math.PI * 2;
       const speed = (0.2 + Math.random() * 0.8) * settings.baseSpeed;
       this.baseVx = Math.cos(angle) * speed;
       this.baseVy = Math.sin(angle) * speed;
-      this.warpDistance = 0;
     } else {
-      // Normal drift
-      const angle = (220 + Math.random() * 80) * (Math.PI / 180); // Drift upwards and left
+      const angle = (220 + Math.random() * 80) * (Math.PI / 180);
       const speed = (0.1 + Math.random() * 0.9) * settings.baseSpeed;
       this.baseVx = Math.cos(angle) * speed;
       this.baseVy = Math.sin(angle) * speed;
     }
 
-    // Visual attributes
     this.size = 0.5 + Math.random() * 1.5;
     this.baseAlpha = 0.2 + Math.random() * 0.8;
     this.alpha = this.baseAlpha;
     this.twinklePhase = Math.random() * Math.PI * 2;
     this.twinkleSpeed = 0.01 + Math.random() * 0.03;
     
-    // Determine type (Cross vs Dot)
     this.isCross = Math.random() < settings.crossRatio;
     this.flareLength = this.isCross ? 3 + Math.random() * 5 : 0;
     
-    // Dynamic Hue customization depending on palette theme
     this.colorSeed = Math.random();
     this.assignColors();
   }
 
   assignColors() {
     if (settings.colorTheme === 'neon-swarm') {
-      // Neon pinks, cyan, and vibrant golds
       if (this.colorSeed < 0.4) {
-        this.r = 0; this.g = 240; this.b = 255; // Neon Cyan
+        this.r = 0; this.g = 240; this.b = 255;
       } else if (this.colorSeed < 0.8) {
-        this.r = 255; this.g = 94; this.b = 200; // Neon Pink
+        this.r = 255; this.g = 94; this.b = 200;
       } else {
-        this.r = 255; this.g = 215; this.b = 0; // Neon Gold
+        this.r = 255; this.g = 215; this.b = 0;
       }
     } else if (settings.colorTheme === 'warp') {
-      // Warp drive: Cyan/white streaks
       if (this.colorSeed < 0.6) {
-        this.r = 230; this.g = 245; this.b = 255; // Icy White
+        this.r = 230; this.g = 245; this.b = 255;
       } else {
-        this.r = 0; this.g = 200; this.b = 255; // Cosmic Cyan
+        this.r = 0; this.g = 200; this.b = 255;
       }
     } else if (settings.colorTheme === 'deep-space') {
-      // Standard deep space: Soft blue stars and white stars
       if (this.colorSeed < 0.3) {
-        this.r = 165; this.g = 185; this.b = 255; // Soft Celestial Blue
+        this.r = 165; this.g = 185; this.b = 255;
       } else {
-        this.r = 255; this.g = 255; this.b = 255; // Pure White
+        this.r = 255; this.g = 255; this.b = 255;
       }
     } else {
-      // Monochrome clean
       this.r = 255; this.g = 255; this.b = 255;
     }
   }
 
   update() {
-    // Twinkle modulation
+    // 1. Twinkle Opacity Math
     if (settings.twinkleActive) {
       this.twinklePhase += this.twinkleSpeed;
       this.alpha = this.baseAlpha + Math.sin(this.twinklePhase) * 0.2;
@@ -227,82 +258,124 @@ class Particle {
       this.alpha = this.baseAlpha;
     }
 
-    // Starburst exponential acceleration in Warp Drive
+    // 2. Cosmic Spotlight / Shadow Veil Shader calculations
+    if (settings.lightMode !== 'disabled' && mouse.x !== undefined && mouse.y !== undefined) {
+      const dx = this.x - mouse.x;
+      const dy = this.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      const R = settings.lightRadius;
+      const W = settings.lightSoftness;
+      const innerRad = R - W / 2;
+      const outerRad = R + W / 2;
+      
+      let T = 0; // spotlight factor (1.0 = fully illuminated, 0.0 = dark shadow)
+
+      if (dist <= innerRad) {
+        T = 1.0;
+      } else if (dist >= outerRad) {
+        T = 0.0;
+      } else {
+        // Smooth transition inside softness boundary
+        const linearFactor = (dist - innerRad) / W;
+        T = 0.5 + 0.5 * Math.cos(linearFactor * Math.PI);
+      }
+
+      // Invert if Dark Shadow Veil is active
+      const factor = settings.lightMode === 'spotlight' ? T : (1.0 - T);
+      const spotlightMultiplier = settings.lightAmbient + (1.0 - settings.lightAmbient) * factor;
+      
+      this.alpha = this.alpha * spotlightMultiplier;
+    }
+
+    // 3. Spawns/Streaks calculations in Warp Drive
     if (settings.warpActive) {
       const dx = this.x - width / 2;
       const dy = this.y - height / 2;
       const d = Math.sqrt(dx * dx + dy * dy);
       
       if (d > 10) {
-        // Accelerate stars as they move outwards
         const accelFactor = 1 + (d / 200) * settings.baseSpeed * 0.15;
         this.vx = (dx / d) * settings.baseSpeed * accelFactor;
         this.vy = (dy / d) * settings.baseSpeed * accelFactor;
-        this.size = Math.max(0.4, (d / width) * 2.5); // Stars grow as they rush past
       } else {
         this.vx = this.baseVx;
         this.vy = this.baseVy;
       }
     } else {
-      // Reset to drift values
       this.vx = this.baseVx;
       this.vy = this.baseVy;
     }
 
-    // Force Field Calculations
+    // 4. Force Fields Equations
     if (settings.forceType !== 'none' && mouse.x !== undefined && mouse.y !== undefined) {
       const dx = this.x - mouse.x;
       const dy = this.y - mouse.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
       if (dist < settings.forceRadius) {
-        // Calculate interaction strength (inverse linear gradient fade, peak at center)
         const strength = (1 - dist / settings.forceRadius);
         const effectVal = strength * settings.forceStrength * (mouse.isDown ? 3.5 : 1.0) * mouse.sizeMultiplier;
         
         if (settings.forceType === 'repel') {
-          // Push away from cursor
           const angle = Math.atan2(dy, dx);
           this.vx += Math.cos(angle) * effectVal * 2.5;
           this.vy += Math.sin(angle) * effectVal * 2.5;
-        } else if (settings.forceType === 'attract') {
-          // Pull towards cursor (Gravitational)
+        } 
+        else if (settings.forceType === 'attract') {
           const angle = Math.atan2(dy, dx);
-          this.vx -= Math.cos(angle) * effectVal * 3.5;
-          this.vy -= Math.sin(angle) * effectVal * 3.5;
+          const swirlAngle = angle + Math.PI / 2; // Accretion perpendicular vector
+          const R_orb = settings.stableRadius;
+          const diff = dist - R_orb;
 
-          // If clicked and very close, shrink and pull completely into singularity
-          if (mouse.isDown && dist < 40) {
-            this.x += (mouse.x - this.x) * 0.2;
-            this.y += (mouse.y - this.y) * 0.2;
-            this.alpha *= 0.8;
-            if (dist < 5) this.reset(false);
+          // Potential equilibrium force
+          if (diff > 0) {
+            // Outside stable orbit: Pull inward
+            const pullForce = (1 - diff / (settings.forceRadius - R_orb)) * settings.forceStrength * (mouse.isDown ? 2.5 : 1.0) * mouse.sizeMultiplier;
+            this.vx -= Math.cos(angle) * pullForce * 1.5;
+            this.vy -= Math.sin(angle) * pullForce * 1.5;
+          } else {
+            // Inside stable orbit: Repel strongly outward to maintain potential core
+            const pushForce = (1 - dist / R_orb) * settings.forceStrength * 4.0 * (mouse.isDown ? 3.5 : 1.0) * mouse.sizeMultiplier;
+            this.vx += Math.cos(angle) * pushForce * 2.0;
+            this.vy += Math.sin(angle) * pushForce * 2.0;
           }
-        } else if (settings.forceType === 'vortex') {
-          // Tangential vortex rotation
+
+          // Swirling Accretion Disk tangent velocity
+          const swirlStrength = (1 - Math.abs(diff) / settings.forceRadius) * settings.forceStrength * 1.8;
+          this.vx += Math.cos(swirlAngle) * swirlStrength * (mouse.isDown ? 2.0 : 1.0);
+          this.vy += Math.sin(swirlAngle) * swirlStrength * (mouse.isDown ? 2.0 : 1.0);
+        } 
+        else if (settings.forceType === 'vortex') {
           const angle = Math.atan2(dy, dx);
-          const swirlAngle = angle + Math.PI / 2; // Tangent vector
+          const swirlAngle = angle + Math.PI / 2;
+          const R_orb = settings.stableRadius;
+          const diff = dist - R_orb;
           
-          // Pull slightly in and swirl intensely
-          const pullVal = effectVal * 0.5;
-          this.vx += (Math.cos(swirlAngle) * effectVal * 3.0) - (Math.cos(angle) * pullVal);
-          this.vy += (Math.sin(swirlAngle) * effectVal * 3.0) - (Math.sin(angle) * pullVal);
+          // Pull smoothly in/out towards orbit radius while vortexing
+          const swirlStrength = effectVal * 3.0;
+          this.vx += Math.cos(swirlAngle) * swirlStrength;
+          this.vy += Math.sin(swirlAngle) * swirlStrength;
+
+          if (Math.abs(diff) > 10) {
+            const pullVal = diff > 0 ? -effectVal * 0.6 : effectVal * 1.2;
+            this.vx += Math.cos(angle) * pullVal;
+            this.vy += Math.sin(angle) * pullVal;
+          }
         }
       }
     }
 
-    // Physics movement integration
+    // Integrate physics
     this.x += this.vx;
     this.y += this.vy;
 
-    // Boundary Wrap / Reset
+    // Bounds wrapping
     if (settings.warpActive) {
-      // Warp Mode: reset if offscreen
       if (this.x < -20 || this.x > width + 20 || this.y < -20 || this.y > height + 20) {
         this.reset(false);
       }
     } else {
-      // Drift wrap bounds
       if (this.x < -30 && this.vx <= 0) this.x = width + 20;
       else if (this.x > width + 30 && this.vx >= 0) this.x = -20;
       
@@ -312,80 +385,121 @@ class Particle {
   }
 
   draw() {
-    // 1. Calculate chromatic aberration split distance based on mouse position
     let aberrationAmt = 0;
-    let radAngle = 0;
+    let dxRed = 0, dyRed = 0;
+    let dxBlue = 0, dyBlue = 0;
 
+    // Evaluate Chromatic Aberration Split Offsets
     if (settings.aberrationActive && mouse.x !== undefined && mouse.y !== undefined) {
       const dx = this.x - mouse.x;
       const dy = this.y - mouse.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       
-      // Check if inside aberration ring zone
       const distFromRing = Math.abs(dist - settings.aberrationRadius);
       const halfWidth = settings.aberrationWidth / 2;
 
       if (distFromRing < halfWidth) {
-        // Bell-shaped displacement factor (quadratic peak in center of ring, fades at borders)
         const normDist = distFromRing / halfWidth;
         const bellCurve = 1.0 - (normDist * normDist);
         
         aberrationAmt = bellCurve * settings.aberrationSplit * (mouse.isDown ? 1.8 : 1.0);
-        radAngle = Math.atan2(dy, dx);
+        const radAngle = Math.atan2(dy, dx);
+        
+        // 1. Calculate Shift Projections based on selected Aberration Mode
+        if (settings.aberrationMode === 'radial') {
+          // Radial Expansion (Classic camera lens distortion)
+          dxRed = Math.cos(radAngle) * aberrationAmt;
+          dyRed = Math.sin(radAngle) * aberrationAmt;
+          dxBlue = -dxRed;
+          dyBlue = -dyRed;
+        } else if (settings.aberrationMode === 'linear-x') {
+          // Horizontal Prism split
+          dxRed = aberrationAmt;
+          dyRed = 0;
+          dxBlue = -aberrationAmt;
+          dyBlue = 0;
+        } else if (settings.aberrationMode === 'linear-y') {
+          // Vertical Prism split
+          dxRed = 0;
+          dyRed = aberrationAmt;
+          dxBlue = 0;
+          dyBlue = -aberrationAmt;
+        } else if (settings.aberrationMode === 'rotational') {
+          // Swirling spiral splits (Rotates RGB layers orthogonally)
+          const rotAngleRed = radAngle + Math.PI / 2;
+          const rotAngleBlue = radAngle - Math.PI / 2;
+          dxRed = Math.cos(rotAngleRed) * aberrationAmt;
+          dyRed = Math.sin(rotAngleRed) * aberrationAmt;
+          dxBlue = Math.cos(rotAngleBlue) * aberrationAmt;
+          dyBlue = Math.sin(rotAngleBlue) * aberrationAmt;
+        }
       }
     }
 
-    // 2. Perform rendering
+    // Dynamic scale integration
+    const sizeScaled = this.size * settings.starSizeMultiplier;
+    const flareScaled = this.flareLength * settings.starSizeMultiplier;
+
+    // 2. Perform rendering with Sub-pixel Channel Compositing
     if (aberrationAmt > 0.4) {
-      // Enable Screen blending to combine sub-pixel RGB layers back to white perfectly
       ctx.globalCompositeOperation = 'screen';
       
-      // Calculate split vector projections
-      const dxRed = Math.cos(radAngle) * aberrationAmt;
-      const dyRed = Math.sin(radAngle) * aberrationAmt;
+      // Determine Color Spectrum channel values
+      let chanA_Color, chanB_Color, chanC_Color;
+
+      if (settings.aberrationColor === 'rgb') {
+        // Red, Green, Blue
+        chanA_Color = `rgba(255, 0, 80, ${this.alpha})`;  // Red
+        chanB_Color = `rgba(0, 255, 100, ${this.alpha})`; // Green (Center Anchor)
+        chanC_Color = `rgba(0, 200, 255, ${this.alpha})`; // Blue
+      } else if (settings.aberrationColor === 'cyberpunk') {
+        // Neon Cyan, Neon Yellow, Neon Magenta
+        chanA_Color = `rgba(0, 255, 255, ${this.alpha})`;   // Cyan
+        chanB_Color = `rgba(255, 255, 0, ${this.alpha})`;   // Yellow (Center Anchor)
+        chanC_Color = `rgba(255, 0, 255, ${this.alpha})`;   // Magenta
+      } else {
+        // Gold, Pure White, Violet Corona
+        chanA_Color = `rgba(255, 200, 0, ${this.alpha})`;   // Gold
+        chanB_Color = `rgba(255, 255, 255, ${this.alpha})`; // White (Center Anchor)
+        chanC_Color = `rgba(180, 0, 255, ${this.alpha})`;   // Violet
+      }
       
-      // Red Channel (Offset outwards)
-      this.drawShape(this.x + dxRed, this.y + dyRed, `rgba(255, 0, 80, ${this.alpha})`);
+      // Render Channel 1 (Red/Cyan/Gold) with shift offset
+      this.drawShape(this.x + dxRed, this.y + dyRed, sizeScaled, flareScaled, chanA_Color);
       
-      // Blue Channel (Offset inwards)
-      this.drawShape(this.x - dxRed, this.y - dyRed, `rgba(0, 200, 255, ${this.alpha})`);
+      // Render Channel 2 (Green/Yellow/White) at exact center anchor
+      this.drawShape(this.x, this.y, sizeScaled, flareScaled, chanB_Color);
       
-      // Green Channel (Anchor at center or minor orthogonal offset)
-      this.drawShape(this.x, this.y, `rgba(0, 255, 100, ${this.alpha})`);
+      // Render Channel 3 (Blue/Magenta/Violet) with opposite shift offset
+      this.drawShape(this.x + dxBlue, this.y + dyBlue, sizeScaled, flareScaled, chanC_Color);
       
-      // Restore default compositing
       ctx.globalCompositeOperation = 'source-over';
     } else {
-      // Normal single rendering pass (extremely high performance)
-      this.drawShape(this.x, this.y, `rgba(${this.r}, ${this.g}, ${this.b}, ${this.alpha})`);
+      // Direct render (Max Frame-rate optimization)
+      this.drawShape(this.x, this.y, sizeScaled, flareScaled, `rgba(${this.r}, ${this.g}, ${this.b}, ${this.alpha})`);
     }
   }
 
-  drawShape(x, y, color) {
+  drawShape(x, y, size, flareLength, color) {
     ctx.fillStyle = color;
     ctx.strokeStyle = color;
     
     if (this.isCross) {
-      // "+" shaped lens flare stars
       ctx.lineWidth = 1;
       
       ctx.beginPath();
-      // Horizontal flare spike
-      ctx.moveTo(x - this.flareLength, y);
-      ctx.lineTo(x + this.flareLength, y);
-      // Vertical flare spike
-      ctx.moveTo(x, y - this.flareLength);
-      ctx.lineTo(x, y + this.flareLength);
+      ctx.moveTo(x - flareLength, y);
+      ctx.lineTo(x + flareLength, y);
+      ctx.moveTo(x, y - flareLength);
+      ctx.lineTo(x, y + flareLength);
       ctx.stroke();
 
-      // Core glow
       ctx.beginPath();
-      ctx.arc(x, y, this.size * 1.2, 0, Math.PI * 2);
+      ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      // Beautiful spherical star dot
       ctx.beginPath();
-      ctx.arc(x, y, this.size, 0, Math.PI * 2);
+      ctx.arc(x, y, size, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -400,7 +514,6 @@ function createParticles() {
   }
 }
 
-// Handle particle count adjustments dynamically
 function updateParticleCount() {
   const current = particles.length;
   const target = settings.starCount;
@@ -414,21 +527,18 @@ function updateParticleCount() {
   }
 }
 
-// Re-evaluate star color assignments
 function updateParticleThemes() {
   particles.forEach(p => p.assignColors());
 }
 
-// Virtual Auto-Orbit (Lissajous path for mouse if user is idle)
+// Virtual Auto-Orbit (For idle mouse coordinates)
 let idleTime = 0;
 function updateVirtualCursor() {
   if (!mouse.isActive) {
     idleTime += 0.008;
-    // Lissajous curve movement
-    mouse.targetX = width / 2 + Math.sin(idleTime) * (width * 0.25);
-    mouse.targetY = height / 2 + Math.cos(idleTime * 0.7) * (height * 0.25);
+    mouse.targetX = width / 2 + Math.sin(idleTime) * (width * 0.23);
+    mouse.targetY = height / 2 + Math.cos(idleTime * 0.65) * (height * 0.23);
     
-    // Smoothly drag virtual coordinates
     if (mouse.x === undefined) {
       mouse.x = mouse.targetX;
       mouse.y = mouse.targetY;
@@ -437,22 +547,22 @@ function updateVirtualCursor() {
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
     }
   } else {
-    // Interpolate towards physical mouse pointer
     mouse.x += (mouse.targetX - mouse.x) * 0.15;
     mouse.y += (mouse.targetY - mouse.y) * 0.15;
   }
 }
 
-// Rendering the UI Lens/Grid indicators around the cursor
+// Render holographic overlays and scanner fields under particles
 function drawInteractiveOverlays() {
   if (mouse.x === undefined || mouse.y === undefined) return;
   
   const pulseScale = 1.0 + Math.sin(Date.now() * 0.003) * 0.03;
   const opacityBase = mouse.isDown ? 0.35 : 0.15;
 
-  // 1. Draw Force Field boundary glow (faint indigo/cyan disk)
+  // 1. Draw Force Field boundary glow (Repel / Attract Potential Wells)
   if (settings.forceType !== 'none') {
     const fieldRad = settings.forceRadius * pulseScale;
+    const stableRad = settings.stableRadius;
     
     const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, fieldRad);
     if (settings.forceType === 'repel') {
@@ -460,8 +570,9 @@ function drawInteractiveOverlays() {
       grad.addColorStop(0.5, `rgba(94, 102, 255, ${opacityBase * 0.2})`);
       grad.addColorStop(1, 'rgba(94, 102, 255, 0)');
     } else if (settings.forceType === 'attract') {
-      grad.addColorStop(0, `rgba(255, 94, 151, ${opacityBase * 0.8})`);
-      grad.addColorStop(0.6, `rgba(255, 94, 151, ${opacityBase * 0.2})`);
+      // Eclipsing core and gold corona
+      grad.addColorStop(0, `rgba(255, 94, 151, ${opacityBase * 1.5})`);
+      grad.addColorStop(stableRad / fieldRad, `rgba(255, 94, 151, ${opacityBase * 0.35})`);
       grad.addColorStop(1, 'rgba(255, 94, 151, 0)');
     } else {
       grad.addColorStop(0, `rgba(165, 94, 255, ${opacityBase * 0.8})`);
@@ -474,25 +585,56 @@ function drawInteractiveOverlays() {
     ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
     ctx.fill();
     
-    // Fine boundary ring
-    ctx.strokeStyle = settings.forceType === 'attract' ? `rgba(255, 94, 151, ${opacityBase * 0.4})` : `rgba(94, 102, 255, ${opacityBase * 0.4})`;
+    // stable orbit vector ring (accretion horizon)
+    if (settings.forceType === 'attract' || settings.forceType === 'vortex') {
+      ctx.strokeStyle = `rgba(255, 94, 151, ${opacityBase * 0.65})`;
+      ctx.lineWidth = 1.0;
+      ctx.setLineDash([2, 6]);
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, stableRad, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Outer gravity boundary
+    ctx.strokeStyle = settings.forceType === 'attract' ? `rgba(255, 94, 151, ${opacityBase * 0.3})` : `rgba(94, 102, 255, ${opacityBase * 0.3})`;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  // 2. Draw Chromatic Aberration focal ring (sci-fi vector scope)
+  // 2. Cosmic Spotlight boundary helper overlays
+  if (settings.lightMode !== 'disabled') {
+    const lightRad = settings.lightRadius;
+    const softness = settings.lightSoftness;
+    
+    ctx.strokeStyle = settings.lightMode === 'spotlight' ? `rgba(0, 255, 120, ${opacityBase * 0.25})` : `rgba(255, 50, 50, ${opacityBase * 0.25})`;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([3, 10]);
+    
+    // Light inner core
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, Math.max(10, lightRad - softness / 2), 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Light outer boundary
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, lightRad + softness / 2, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.setLineDash([]);
+  }
+
+  // 3. Chromatic Aberration scope ring
   if (settings.aberrationActive) {
     const abRad = settings.aberrationRadius;
     const abWidth = settings.aberrationWidth;
 
-    // Faint ring indicating the aberration center
     ctx.strokeStyle = `rgba(255, 255, 255, ${opacityBase * 0.35})`;
     ctx.lineWidth = 0.8;
-    ctx.setLineDash([4, 12]); // Dash ring
+    ctx.setLineDash([4, 12]);
     
-    // Rotate ring overlay over time
     ctx.save();
     ctx.translate(mouse.x, mouse.y);
     ctx.rotate(Date.now() * 0.0003);
@@ -501,26 +643,36 @@ function drawInteractiveOverlays() {
     ctx.stroke();
     ctx.restore();
     
-    ctx.setLineDash([]); // Reset dash
+    ctx.setLineDash([]);
 
-    // Draw aberration scope zone gradient
     const ringGrad = ctx.createRadialGradient(
       mouse.x, mouse.y, abRad - abWidth / 2, 
       mouse.x, mouse.y, abRad + abWidth / 2
     );
-    ringGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-    ringGrad.addColorStop(0.5, `rgba(255, 255, 255, ${opacityBase * 0.12})`);
-    ringGrad.addColorStop(1, 'rgba(255, 94, 151, 0)');
+    
+    if (settings.aberrationColor === 'cyberpunk') {
+      ringGrad.addColorStop(0, 'rgba(0, 255, 255, 0)');
+      ringGrad.addColorStop(0.5, `rgba(255, 0, 255, ${opacityBase * 0.12})`);
+      ringGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
+    } else if (settings.aberrationColor === 'supernova') {
+      ringGrad.addColorStop(0, 'rgba(255, 200, 0, 0)');
+      ringGrad.addColorStop(0.5, `rgba(180, 0, 255, ${opacityBase * 0.15})`);
+      ringGrad.addColorStop(1, 'rgba(255, 200, 0, 0)');
+    } else {
+      ringGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
+      ringGrad.addColorStop(0.5, `rgba(255, 255, 255, ${opacityBase * 0.12})`);
+      ringGrad.addColorStop(1, 'rgba(255, 94, 151, 0)');
+    }
     
     ctx.fillStyle = ringGrad;
     ctx.beginPath();
     ctx.arc(mouse.x, mouse.y, abRad + abWidth / 2, 0, Math.PI * 2);
-    ctx.arc(mouse.x, mouse.y, abRad - abWidth / 2, 0, Math.PI * 2, true); // Ring path punch out
+    ctx.arc(mouse.x, mouse.y, abRad - abWidth / 2, 0, Math.PI * 2, true);
     ctx.fill();
   }
 }
 
-// Frame Rate & Telemetry Management
+// Telemetry Metric update frames
 let fps = 0;
 let lastTime = performance.now();
 let frames = 0;
@@ -543,11 +695,14 @@ function updateTelemetry() {
   document.getElementById('stat-coords').innerText = `X: ${mX}, Y: ${mY}`;
 }
 
-// Bind UI Settings Dashboard Controls to Engine
+// Bind UI Settings sliders to Engine
 function bindUIControls() {
-  // Elements
   const sStarCount = document.getElementById('star-count');
   const vStarCount = document.getElementById('val-star-count');
+  
+  const sStarSize = document.getElementById('star-size');
+  const vStarSize = document.getElementById('val-star-size');
+
   const sCrossRatio = document.getElementById('cross-ratio');
   const vCrossRatio = document.getElementById('val-cross-ratio');
   const sBaseSpeed = document.getElementById('base-speed');
@@ -559,8 +714,26 @@ function bindUIControls() {
   const vForceStr = document.getElementById('val-force-strength');
   const sForceRad = document.getElementById('force-radius');
   const vForceRad = document.getElementById('val-force-radius');
+  
+  const sStableRad = document.getElementById('stable-radius');
+  const vStableRad = document.getElementById('val-stable-radius');
+  const stableGroup = document.getElementById('stable-radius-group');
+
+  const lMode = document.getElementById('light-mode');
+  const sLightRad = document.getElementById('light-radius');
+  const vLightRad = document.getElementById('val-light-radius');
+  const sLightSoft = document.getElementById('light-softness');
+  const vLightSoft = document.getElementById('val-light-softness');
+  const sLightAmb = document.getElementById('light-ambient');
+  const vLightAmb = document.getElementById('val-light-ambient');
+  
+  const lRadiusGroup = document.getElementById('light-radius-group');
+  const lSoftnessGroup = document.getElementById('light-softness-group');
+  const lAmbientGroup = document.getElementById('light-ambient-group');
 
   const tAberration = document.getElementById('aberration-active');
+  const sAberrationMode = document.getElementById('aberration-mode');
+  const sAberrationColor = document.getElementById('aberration-color');
   const sAberrationRad = document.getElementById('aberration-radius');
   const vAberrationRad = document.getElementById('val-aberration-radius');
   const sAberrationWidth = document.getElementById('aberration-width');
@@ -570,18 +743,22 @@ function bindUIControls() {
 
   const presetsGrid = document.querySelectorAll('.btn-preset');
   
-  // Updates
+  // Handlers
   sStarCount.addEventListener('input', (e) => {
     settings.starCount = parseInt(e.target.value);
     vStarCount.innerText = settings.starCount;
     updateParticleCount();
   });
 
+  sStarSize.addEventListener('input', (e) => {
+    settings.starSizeMultiplier = parseFloat(e.target.value);
+    vStarSize.innerText = `${settings.starSizeMultiplier.toFixed(1)}x`;
+  });
+
   sCrossRatio.addEventListener('input', (e) => {
     const val = parseInt(e.target.value);
     settings.crossRatio = val / 100;
     vCrossRatio.innerText = `${val}%`;
-    // Instantly alter ratios of some particles
     particles.forEach(p => {
       p.isCross = Math.random() < settings.crossRatio;
       p.flareLength = p.isCross ? 3 + Math.random() * 5 : 0;
@@ -591,7 +768,6 @@ function bindUIControls() {
   sBaseSpeed.addEventListener('input', (e) => {
     settings.baseSpeed = parseFloat(e.target.value);
     vBaseSpeed.innerText = `${settings.baseSpeed.toFixed(1)}x`;
-    // Reassign base speeds
     particles.forEach(p => {
       const angle = Math.atan2(p.baseVy, p.baseVx);
       p.baseVx = Math.cos(angle) * (0.1 + Math.random() * 0.9) * settings.baseSpeed;
@@ -603,8 +779,18 @@ function bindUIControls() {
     settings.twinkleActive = e.target.checked;
   });
 
+  // Dynamic collapsible menu bindings
+  const updateForceUIVisibility = (val) => {
+    if (val === 'attract' || val === 'vortex') {
+      stableGroup.classList.remove('hidden');
+    } else {
+      stableGroup.classList.add('hidden');
+    }
+  };
+
   fType.addEventListener('change', (e) => {
     settings.forceType = e.target.value;
+    updateForceUIVisibility(settings.forceType);
   });
 
   sForceStr.addEventListener('input', (e) => {
@@ -617,8 +803,54 @@ function bindUIControls() {
     vForceRad.innerText = `${settings.forceRadius}px`;
   });
 
+  sStableRad.addEventListener('input', (e) => {
+    settings.stableRadius = parseInt(e.target.value);
+    vStableRad.innerText = `${settings.stableRadius}px`;
+  });
+
+  const updateLightUIVisibility = (val) => {
+    if (val === 'disabled') {
+      lRadiusGroup.classList.add('hidden');
+      lSoftnessGroup.classList.add('hidden');
+      lAmbientGroup.classList.add('hidden');
+    } else {
+      lRadiusGroup.classList.remove('hidden');
+      lSoftnessGroup.classList.remove('hidden');
+      lAmbientGroup.classList.remove('hidden');
+    }
+  };
+
+  lMode.addEventListener('change', (e) => {
+    settings.lightMode = e.target.value;
+    updateLightUIVisibility(settings.lightMode);
+  });
+
+  sLightRad.addEventListener('input', (e) => {
+    settings.lightRadius = parseInt(e.target.value);
+    vLightRad.innerText = `${settings.lightRadius}px`;
+  });
+
+  sLightSoft.addEventListener('input', (e) => {
+    settings.lightSoftness = parseInt(e.target.value);
+    vLightSoft.innerText = `${settings.lightSoftness}px`;
+  });
+
+  sLightAmb.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.lightAmbient = val / 100;
+    vLightAmb.innerText = `${val}%`;
+  });
+
   tAberration.addEventListener('change', (e) => {
     settings.aberrationActive = e.target.checked;
+  });
+
+  sAberrationMode.addEventListener('change', (e) => {
+    settings.aberrationMode = e.target.value;
+  });
+
+  sAberrationColor.addEventListener('change', (e) => {
+    settings.aberrationColor = e.target.value;
   });
 
   sAberrationRad.addEventListener('input', (e) => {
@@ -636,7 +868,6 @@ function bindUIControls() {
     vAberrationSplit.innerText = `${settings.aberrationSplit}px`;
   });
 
-  // Preset selectors
   presetsGrid.forEach(btn => {
     btn.addEventListener('click', () => {
       presetsGrid.forEach(b => b.classList.remove('active'));
@@ -644,26 +875,31 @@ function bindUIControls() {
       applyPreset(btn.dataset.preset);
     });
   });
+
+  // Initial runs
+  updateForceUIVisibility(settings.forceType);
+  updateLightUIVisibility(settings.lightMode);
 }
 
-// Core preset applicator
+// Preset applicator
 function applyPreset(presetKey) {
   const preset = presets[presetKey];
   if (!preset) return;
 
-  // Apply properties to settings
   Object.keys(preset).forEach(key => {
     if (key !== 'nebulaColor') {
       settings[key] = preset[key];
     }
   });
 
-  // Apply Nebula CSS Gradient
   nebula.style.background = preset.nebulaColor;
 
-  // Update UI control positions to match active preset values
+  // Synch HTML ranges and dropdowns
   document.getElementById('star-count').value = preset.starCount;
   document.getElementById('val-star-count').innerText = preset.starCount;
+
+  document.getElementById('star-size').value = preset.starSizeMultiplier;
+  document.getElementById('val-star-size').innerText = `${preset.starSizeMultiplier.toFixed(1)}x`;
 
   document.getElementById('cross-ratio').value = preset.crossRatio;
   document.getElementById('val-cross-ratio').innerText = `${preset.crossRatio}%`;
@@ -681,7 +917,20 @@ function applyPreset(presetKey) {
   document.getElementById('force-radius').value = preset.forceRadius;
   document.getElementById('val-force-radius').innerText = `${preset.forceRadius}px`;
 
+  document.getElementById('stable-radius').value = preset.stableRadius;
+  document.getElementById('val-stable-radius').innerText = `${preset.stableRadius}px`;
+
+  document.getElementById('light-mode').value = preset.lightMode;
+  document.getElementById('light-radius').value = preset.lightRadius;
+  document.getElementById('val-light-radius').innerText = `${preset.lightRadius}px`;
+  document.getElementById('light-softness').value = preset.lightSoftness;
+  document.getElementById('val-light-softness').innerText = `${preset.lightSoftness}px`;
+  document.getElementById('light-ambient').value = preset.lightAmbient;
+  document.getElementById('val-light-ambient').innerText = `${preset.lightAmbient}%`;
+
   document.getElementById('aberration-active').checked = preset.aberrationActive;
+  document.getElementById('aberration-mode').value = preset.aberrationMode;
+  document.getElementById('aberration-color').value = preset.aberrationColor;
 
   document.getElementById('aberration-radius').value = preset.aberrationRadius;
   document.getElementById('val-aberration-radius').innerText = `${preset.aberrationRadius}px`;
@@ -692,21 +941,40 @@ function applyPreset(presetKey) {
   document.getElementById('aberration-split').value = preset.aberrationSplit;
   document.getElementById('val-aberration-split').innerText = `${preset.aberrationSplit}px`;
 
-  // Trigger engine updates
+  // UI Visibility collapsible overrides
+  const stableGroup = document.getElementById('stable-radius-group');
+  if (preset.forceType === 'attract' || preset.forceType === 'vortex') {
+    stableGroup.classList.remove('hidden');
+  } else {
+    stableGroup.classList.add('hidden');
+  }
+
+  const lRadiusGroup = document.getElementById('light-radius-group');
+  const lSoftnessGroup = document.getElementById('light-softness-group');
+  const lAmbientGroup = document.getElementById('light-ambient-group');
+  if (preset.lightMode === 'disabled') {
+    lRadiusGroup.classList.add('hidden');
+    lSoftnessGroup.classList.add('hidden');
+    lAmbientGroup.classList.add('hidden');
+  } else {
+    lRadiusGroup.classList.remove('hidden');
+    lSoftnessGroup.classList.remove('hidden');
+    lAmbientGroup.classList.remove('hidden');
+  }
+
+  // Reload particle instances
   updateParticleCount();
   updateParticleThemes();
-  
-  // Re-initialize velocity profiles for warp drive triggers
   particles.forEach(p => p.reset(true));
 }
 
-// Setup Mouse and Touch Listeners
+// Mouse/Touch triggers setup
 function setupInputListeners() {
   window.addEventListener('mousemove', (e) => {
     mouse.targetX = e.clientX;
     mouse.targetY = e.clientY;
     mouse.isActive = true;
-    idleTime = 0; // reset idle
+    idleTime = 0;
   });
 
   window.addEventListener('mouseleave', () => {
@@ -714,11 +982,8 @@ function setupInputListeners() {
   });
 
   window.addEventListener('mousedown', (e) => {
-    // Prevent down states when clicking inside the floating controls
     if (e.target.closest('#control-panel') || e.target.closest('#panel-trigger')) return;
-    
     mouse.isDown = true;
-    // Animate zoom multiplier for high attraction/suction click effect
     gsapAnimateMultiplier(2.2);
   });
 
@@ -727,7 +992,6 @@ function setupInputListeners() {
     gsapAnimateMultiplier(1.0);
   });
 
-  // Touch screens mobile support
   window.addEventListener('touchmove', (e) => {
     if (e.touches.length > 0) {
       mouse.targetX = e.touches[0].clientX;
@@ -752,7 +1016,7 @@ function setupInputListeners() {
   });
 }
 
-// Ease the force sizing scale for dynamic click implosions smoothly
+// Smooth easing math for double collapses on hold click
 let multInterval;
 function gsapAnimateMultiplier(targetValue) {
   clearInterval(multInterval);
@@ -767,7 +1031,7 @@ function gsapAnimateMultiplier(targetValue) {
   }, 16);
 }
 
-// Bind panel minimize/open togglers
+// Hide/Show Glass controls panel
 function bindPanelToggles() {
   const panel = document.getElementById('control-panel');
   const trigger = document.getElementById('panel-trigger');
@@ -784,36 +1048,27 @@ function bindPanelToggles() {
   });
 }
 
-// Primary Simulation Render & Physics Loop
+// Main Frame physics & draw Loop
 function loop() {
-  // Ultra-clean cosmic decay erase path: draws a faint trails overlay
-  // or a crisp clear screen depending on warp speed
   if (settings.warpActive) {
-    ctx.fillStyle = 'rgba(2, 2, 6, 0.12)'; // Faint trail smears for hyper speed streaks
+    ctx.fillStyle = 'rgba(2, 2, 6, 0.12)';
     ctx.fillRect(0, 0, width, height);
   } else {
     ctx.clearRect(0, 0, width, height);
   }
 
-  // Update mouse orbital telemetry & smoothing
   updateVirtualCursor();
-
-  // Draw force field and aberration overlays under particles
   drawInteractiveOverlays();
 
-  // Render & Physics updates for each particle
   particles.forEach(p => {
     p.update();
     p.draw();
   });
 
-  // Gather performance frame-speeds
   updateTelemetry();
-
   requestAnimationFrame(loop);
 }
 
-// Initialize Everything
 function init() {
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
@@ -822,11 +1077,9 @@ function init() {
   bindUIControls();
   bindPanelToggles();
   
-  // Set default initial background gradient styling
   nebula.style.background = presets['deep-space'].nebulaColor;
   
   loop();
 }
 
-// Start simulation on load
 window.addEventListener('DOMContentLoaded', init);
