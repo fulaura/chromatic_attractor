@@ -232,6 +232,54 @@
         </div>
       </div>
 
+      <!-- Section: Profile Manager -->
+      <div class="section">
+        <span class="section-title">Profile Manager</span>
+        
+        <div class="control-group">
+          <div class="control-label">
+            <span>Profile Name</span>
+          </div>
+          <input type="text" id="profile-name" placeholder="My Custom Universe" style="
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--panel-border);
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 12px;
+            outline: none;
+          ">
+        </div>
+
+        <div class="presets-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn-preset" id="btn-save-profile" style="font-size: 11px;">Save Profile</button>
+          <button class="btn-preset" id="btn-delete-profile" style="font-size: 11px; color: var(--accent-danger);">Delete Slot</button>
+        </div>
+
+        <div class="control-group" id="saved-profiles-group">
+          <div class="control-label">
+            <span>Load Profile</span>
+          </div>
+          <select id="saved-profiles">
+            <option value="">-- Select Profile --</option>
+          </select>
+        </div>
+
+        <div class="presets-grid" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn-preset" id="btn-export-profile" style="font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export JSON
+          </button>
+          <button class="btn-preset" id="btn-import-profile" style="font-size: 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Import JSON
+          </button>
+        </div>
+        <input type="file" id="file-import-input" accept=".json" style="display: none;">
+      </div>
+
       <!-- Section: Real-time Metrics -->
       <div class="section">
         <span class="section-title">Telemetry</span>

@@ -695,6 +695,185 @@ function updateTelemetry() {
   document.getElementById('stat-coords').innerText = `X: ${mX}, Y: ${mY}`;
 }
 
+const STORAGE_KEY = 'cosmic_sandbox_profiles';
+
+// Retrieve all profiles
+function getSavedProfiles() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : {};
+}
+
+// Populate the saved profiles select dropdown
+function populateProfilesDropdown() {
+  const select = document.getElementById('saved-profiles');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">-- Select Profile --</option>';
+  
+  const profiles = getSavedProfiles();
+  Object.keys(profiles).sort().forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+}
+
+// Save profile to local storage
+function saveProfile() {
+  const nameInput = document.getElementById('profile-name');
+  if (!nameInput) return;
+  
+  const name = nameInput.value.trim();
+  if (!name) {
+    alert('Please enter a Profile Name first!');
+    return;
+  }
+  
+  const profiles = getSavedProfiles();
+  profiles[name] = { ...settings };
+  
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+  populateProfilesDropdown();
+  
+  document.getElementById('saved-profiles').value = name;
+  alert(`Profile "${name}" saved successfully!`);
+}
+
+// Delete profile from local storage
+function deleteProfile() {
+  const select = document.getElementById('saved-profiles');
+  if (!select) return;
+  
+  const name = select.value;
+  if (!name) {
+    alert('Please select a profile to delete!');
+    return;
+  }
+  
+  if (confirm(`Are you sure you want to delete profile "${name}"?`)) {
+    const profiles = getSavedProfiles();
+    delete profiles[name];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    
+    populateProfilesDropdown();
+    document.getElementById('profile-name').value = '';
+    alert(`Profile "${name}" deleted.`);
+  }
+}
+
+// Export profile to JSON file
+function exportProfile() {
+  const dataStr = JSON.stringify(settings, null, 2);
+  const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+  
+  const profileName = document.getElementById('profile-name').value.trim() || 'custom-universe';
+  const exportFileDefaultName = `${profileName.toLowerCase().replace(/[^a-z0-9]/g, '_')}_settings.json`;
+  
+  const linkElement = document.createElement('a');
+  linkElement.setAttribute('href', dataUri);
+  linkElement.setAttribute('download', exportFileDefaultName);
+  linkElement.click();
+}
+
+// Import profile from JSON file
+function importProfile(e) {
+  if (!e.target.files.length) return;
+  
+  const fileReader = new FileReader();
+  fileReader.onload = function(event) {
+    try {
+      const parsedSettings = JSON.parse(event.target.result);
+      
+      if (typeof parsedSettings.starCount !== 'number' || typeof parsedSettings.baseSpeed !== 'number') {
+        alert('Invalid configuration file format!');
+        return;
+      }
+      
+      Object.keys(parsedSettings).forEach(key => {
+        if (settings[key] !== undefined) {
+          settings[key] = parsedSettings[key];
+        }
+      });
+      
+      applySettingsToUI();
+      alert('Settings imported successfully!');
+    } catch (err) {
+      alert('Error parsing settings file: ' + err.message);
+    }
+  };
+  fileReader.readAsText(e.target.files[0]);
+}
+
+// Helper to push settings values directly into HTML sliders and menus
+function applySettingsToUI() {
+  document.getElementById('star-count').value = settings.starCount;
+  document.getElementById('val-star-count').innerText = settings.starCount;
+  
+  document.getElementById('star-size').value = settings.starSizeMultiplier;
+  document.getElementById('val-star-size').innerText = `${settings.starSizeMultiplier.toFixed(1)}x`;
+
+  document.getElementById('cross-ratio').value = Math.round(settings.crossRatio * 100);
+  document.getElementById('val-cross-ratio').innerText = `${Math.round(settings.crossRatio * 100)}%`;
+
+  document.getElementById('base-speed').value = settings.baseSpeed;
+  document.getElementById('val-base-speed').innerText = `${settings.baseSpeed.toFixed(1)}x`;
+
+  document.getElementById('twinkle-active').checked = settings.twinkleActive;
+
+  document.getElementById('force-type').value = settings.forceType;
+  document.getElementById('force-strength').value = settings.forceStrength;
+  document.getElementById('val-force-strength').innerText = settings.forceStrength.toFixed(1);
+  document.getElementById('force-radius').value = settings.forceRadius;
+  document.getElementById('val-force-radius').innerText = `${settings.forceRadius}px`;
+  document.getElementById('stable-radius').value = settings.stableRadius;
+  document.getElementById('val-stable-radius').innerText = `${settings.stableRadius}px`;
+
+  document.getElementById('light-mode').value = settings.lightMode;
+  document.getElementById('light-radius').value = settings.lightRadius;
+  document.getElementById('val-light-radius').innerText = `${settings.lightRadius}px`;
+  document.getElementById('light-softness').value = settings.lightSoftness;
+  document.getElementById('val-light-softness').innerText = `${settings.lightSoftness}px`;
+  document.getElementById('light-ambient').value = Math.round(settings.lightAmbient * 100);
+  document.getElementById('val-light-ambient').innerText = `${Math.round(settings.lightAmbient * 100)}%`;
+
+  document.getElementById('aberration-active').checked = settings.aberrationActive;
+  document.getElementById('aberration-mode').value = settings.aberrationMode;
+  document.getElementById('aberration-color').value = settings.aberrationColor;
+  document.getElementById('aberration-radius').value = settings.aberrationRadius;
+  document.getElementById('val-aberration-radius').innerText = `${settings.aberrationRadius}px`;
+  document.getElementById('aberration-width').value = settings.aberrationWidth;
+  document.getElementById('val-aberration-width').innerText = `${settings.aberrationWidth}px`;
+  document.getElementById('aberration-split').value = settings.aberrationSplit;
+  document.getElementById('val-aberration-split').innerText = `${settings.aberrationSplit}px`;
+
+  // UI Visibility Collapsible updates
+  const stableGroup = document.getElementById('stable-radius-group');
+  if (settings.forceType === 'attract' || settings.forceType === 'vortex') {
+    stableGroup.classList.remove('hidden');
+  } else {
+    stableGroup.classList.add('hidden');
+  }
+
+  const lRadiusGroup = document.getElementById('light-radius-group');
+  const lSoftnessGroup = document.getElementById('light-softness-group');
+  const lAmbientGroup = document.getElementById('light-ambient-group');
+  if (settings.lightMode === 'disabled') {
+    lRadiusGroup.classList.add('hidden');
+    lSoftnessGroup.classList.add('hidden');
+    lAmbientGroup.classList.add('hidden');
+  } else {
+    lRadiusGroup.classList.remove('hidden');
+    lSoftnessGroup.classList.remove('hidden');
+    lAmbientGroup.classList.remove('hidden');
+  }
+
+  // Reload particle parameters
+  updateParticleCount();
+  updateParticleThemes();
+  particles.forEach(p => p.reset(true));
+}
+
 // Bind UI Settings sliders to Engine
 function bindUIControls() {
   const sStarCount = document.getElementById('star-count');
@@ -876,6 +1055,32 @@ function bindUIControls() {
     });
   });
 
+  // Profile manager bindings
+  document.getElementById('btn-save-profile').addEventListener('click', saveProfile);
+  document.getElementById('btn-delete-profile').addEventListener('click', deleteProfile);
+  document.getElementById('btn-export-profile').addEventListener('click', exportProfile);
+  
+  const fileInput = document.getElementById('file-import-input');
+  document.getElementById('btn-import-profile').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', importProfile);
+  
+  document.getElementById('saved-profiles').addEventListener('change', (e) => {
+    const name = e.target.value;
+    if (!name) return;
+    
+    const profiles = getSavedProfiles();
+    const loadedSettings = profiles[name];
+    if (loadedSettings) {
+      Object.keys(loadedSettings).forEach(key => {
+        if (settings[key] !== undefined) {
+          settings[key] = loadedSettings[key];
+        }
+      });
+      document.getElementById('profile-name').value = name;
+      applySettingsToUI();
+    }
+  });
+
   // Initial runs
   updateForceUIVisibility(settings.forceType);
   updateLightUIVisibility(settings.lightMode);
@@ -894,78 +1099,12 @@ function applyPreset(presetKey) {
 
   nebula.style.background = preset.nebulaColor;
 
-  // Synch HTML ranges and dropdowns
-  document.getElementById('star-count').value = preset.starCount;
-  document.getElementById('val-star-count').innerText = preset.starCount;
+  // Reset profile name inputs to show preset is loaded
+  document.getElementById('profile-name').value = '';
+  document.getElementById('saved-profiles').value = '';
 
-  document.getElementById('star-size').value = preset.starSizeMultiplier;
-  document.getElementById('val-star-size').innerText = `${preset.starSizeMultiplier.toFixed(1)}x`;
-
-  document.getElementById('cross-ratio').value = preset.crossRatio;
-  document.getElementById('val-cross-ratio').innerText = `${preset.crossRatio}%`;
-
-  document.getElementById('base-speed').value = preset.baseSpeed;
-  document.getElementById('val-base-speed').innerText = `${preset.baseSpeed.toFixed(1)}x`;
-
-  document.getElementById('twinkle-active').checked = preset.twinkleActive;
-
-  document.getElementById('force-type').value = preset.forceType;
-
-  document.getElementById('force-strength').value = preset.forceStrength;
-  document.getElementById('val-force-strength').innerText = preset.forceStrength.toFixed(1);
-
-  document.getElementById('force-radius').value = preset.forceRadius;
-  document.getElementById('val-force-radius').innerText = `${preset.forceRadius}px`;
-
-  document.getElementById('stable-radius').value = preset.stableRadius;
-  document.getElementById('val-stable-radius').innerText = `${preset.stableRadius}px`;
-
-  document.getElementById('light-mode').value = preset.lightMode;
-  document.getElementById('light-radius').value = preset.lightRadius;
-  document.getElementById('val-light-radius').innerText = `${preset.lightRadius}px`;
-  document.getElementById('light-softness').value = preset.lightSoftness;
-  document.getElementById('val-light-softness').innerText = `${preset.lightSoftness}px`;
-  document.getElementById('light-ambient').value = preset.lightAmbient;
-  document.getElementById('val-light-ambient').innerText = `${preset.lightAmbient}%`;
-
-  document.getElementById('aberration-active').checked = preset.aberrationActive;
-  document.getElementById('aberration-mode').value = preset.aberrationMode;
-  document.getElementById('aberration-color').value = preset.aberrationColor;
-
-  document.getElementById('aberration-radius').value = preset.aberrationRadius;
-  document.getElementById('val-aberration-radius').innerText = `${preset.aberrationRadius}px`;
-
-  document.getElementById('aberration-width').value = preset.aberrationWidth;
-  document.getElementById('val-aberration-width').innerText = `${preset.aberrationWidth}px`;
-
-  document.getElementById('aberration-split').value = preset.aberrationSplit;
-  document.getElementById('val-aberration-split').innerText = `${preset.aberrationSplit}px`;
-
-  // UI Visibility collapsible overrides
-  const stableGroup = document.getElementById('stable-radius-group');
-  if (preset.forceType === 'attract' || preset.forceType === 'vortex') {
-    stableGroup.classList.remove('hidden');
-  } else {
-    stableGroup.classList.add('hidden');
-  }
-
-  const lRadiusGroup = document.getElementById('light-radius-group');
-  const lSoftnessGroup = document.getElementById('light-softness-group');
-  const lAmbientGroup = document.getElementById('light-ambient-group');
-  if (preset.lightMode === 'disabled') {
-    lRadiusGroup.classList.add('hidden');
-    lSoftnessGroup.classList.add('hidden');
-    lAmbientGroup.classList.add('hidden');
-  } else {
-    lRadiusGroup.classList.remove('hidden');
-    lSoftnessGroup.classList.remove('hidden');
-    lAmbientGroup.classList.remove('hidden');
-  }
-
-  // Reload particle instances
-  updateParticleCount();
-  updateParticleThemes();
-  particles.forEach(p => p.reset(true));
+  // Synchronize settings state to UI and particles
+  applySettingsToUI();
 }
 
 // Mouse/Touch triggers setup
@@ -1076,6 +1215,8 @@ function init() {
   setupInputListeners();
   bindUIControls();
   bindPanelToggles();
+  
+  populateProfilesDropdown();
   
   nebula.style.background = presets['deep-space'].nebulaColor;
   
