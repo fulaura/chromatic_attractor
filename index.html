@@ -246,7 +246,7 @@
           </label>
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-mode-group">
           <div class="control-label">
             <span>Split Mode</span>
           </div>
@@ -258,7 +258,7 @@
           </select>
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-color-group">
           <div class="control-label">
             <span>Color Spectrum</span>
           </div>
@@ -269,7 +269,7 @@
           </select>
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-radius-group">
           <div class="control-label">
             <span>Ring Radius</span>
             <span class="control-value" id="val-aberration-radius">120px</span>
@@ -277,7 +277,7 @@
           <input type="range" id="aberration-radius" min="30" max="300" step="5" value="120">
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-width-group">
           <div class="control-label">
             <span>Ring Width</span>
             <span class="control-value" id="val-aberration-width">60px</span>
@@ -285,7 +285,7 @@
           <input type="range" id="aberration-width" min="10" max="150" step="5" value="60">
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-split-group">
           <div class="control-label">
             <span>Shift Strength</span>
             <span class="control-value" id="val-aberration-split">8px</span>
@@ -293,17 +293,17 @@
           <input type="range" id="aberration-split" min="2" max="25" step="1" value="8">
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-field-opacity-group">
           <div class="control-label">
-            <span>Ring Glow Opacity</span>
+            <span>Ring Opacity</span>
             <span class="control-value" id="val-aberration-field-opacity">12%</span>
           </div>
-          <input type="range" id="aberration-field-opacity" min="0" max="100" step="5" value="12">
+          <input type="range" id="aberration-field-opacity" min="0" max="100" step="1" value="12">
         </div>
 
-        <div class="control-group">
+        <div class="control-group" id="aberration-field-color-group">
           <div class="control-label">
-            <span>Ring Glow Color</span>
+            <span>Ring Color</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
             <input type="color" id="aberration-field-color" value="#ffffff" style="
@@ -319,19 +319,27 @@
           </div>
         </div>
 
-        <div class="toggle-group">
+        <div class="toggle-group" id="show-aberration-outline-group">
           <div class="control-label">
             <span>Show Ring Outline</span>
           </div>
           <label class="switch">
-            <input type="checkbox" id="aberration-show-outline" checked>
+            <input type="checkbox" id="show-aberration-outline" checked>
             <span class="slider"></span>
           </label>
         </div>
 
+        <div class="control-group" id="aberration-outline-opacity-group">
+          <div class="control-label">
+            <span>Outline Opacity</span>
+            <span class="control-value" id="val-aberration-outline-opacity">35%</span>
+          </div>
+          <input type="range" id="aberration-outline-opacity" min="0" max="100" step="1" value="35">
+        </div>
+
         <div class="control-group" id="aberration-outline-color-group">
           <div class="control-label">
-            <span>Ring Outline Color</span>
+            <span>Outline Color</span>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
             <input type="color" id="aberration-outline-color" value="#ffffff" style="
@@ -345,24 +353,6 @@
             ">
             <span id="val-aberration-outline-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#FFFFFF</span>
           </div>
-        </div>
-
-        <div class="control-group" id="aberration-outline-opacity-group">
-          <div class="control-label">
-            <span>Ring Outline Opacity</span>
-            <span class="control-value" id="val-aberration-outline-opacity">35%</span>
-          </div>
-          <input type="range" id="aberration-outline-opacity" min="0" max="100" step="5" value="35">
-        </div>
-
-        <div class="control-group" id="aberration-outline-style-group">
-          <div class="control-label">
-            <span>Ring Outline Style</span>
-          </div>
-          <select id="aberration-outline-style">
-            <option value="dashed">Futuristic Dashed</option>
-            <option value="solid">Clean Solid</option>
-          </select>
         </div>
       </div>
 

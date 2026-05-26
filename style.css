@@ -453,7 +453,7 @@ input:checked + .slider:before {
 }
 
 /* Dynamic display utilities */
-.control-group.hidden, .section.hidden {
+.control-group.hidden, .toggle-group.hidden, .section.hidden {
   display: none !important;
 }
 
