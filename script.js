@@ -1094,8 +1094,8 @@ function bindUIControls() {
   const sAbOutlineColor = document.getElementById('aberration-outline-color');
   const vAbOutlineColor = document.getElementById('val-aberration-outline-color');
 
-  const sSystemProfiles = document.getElementById('system-profiles');
-
+  const presetPicker = document.getElementById('preset-picker');
+  
   // Handlers
   sStarCount.addEventListener('input', (e) => {
     settings.starCount = parseInt(e.target.value);
@@ -1330,12 +1330,11 @@ function bindUIControls() {
     vAbOutlineColor.innerText = settings.aberrationOutlineColor.toUpperCase();
   });
 
-  sSystemProfiles.addEventListener('change', (e) => {
-    const name = e.target.value;
-    if (name) {
-      loadSystemProfile(name);
-    }
-  });
+  if (presetPicker) {
+    presetPicker.addEventListener('change', (e) => {
+      applyPreset(e.target.value);
+    });
+  }
 
   // Profile manager bindings
   document.getElementById('btn-save-profile').addEventListener('click', saveProfile);
@@ -1370,51 +1369,54 @@ function bindUIControls() {
   updateLightUIVisibility(settings.lightMode);
 }
 
-// Dynamic Profile Loader from local templates with robust file:// fallback
-function loadSystemProfile(name) {
-  const select = document.getElementById('system-profiles');
-  if (select) select.value = name;
-
-  const url = `./system_templates/${name}.json`;
-
-  fetch(url)
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      return res.json();
-    })
-    .then(loadedSettings => {
-      applyLoadedProfile(loadedSettings);
-      console.log(`Loaded system profile "${name}" successfully from template file.`);
-    })
-    .catch(err => {
-      console.warn(`Failed to fetch system template "${name}" from disk (possibly local file:// CORS lock). Falling back to script presets. Details:`, err.message);
-      
-      // Failsafe fallback: Load from the local presets dictionary in script.js
-      const fallbackPresetKey = name.replace('_', '-'); // e.g. deep_space -> deep-space
-      const preset = presets[fallbackPresetKey];
-      if (preset) {
-        applyLoadedProfile(preset);
+// Preset applicator with local JSON fetch and safe offline/CORS fallback
+function applyPreset(presetKey) {
+  const fallbackPreset = presets[presetKey];
+  
+  const applyData = (data) => {
+    Object.keys(data).forEach(key => {
+      if (key !== 'nebulaColor') {
+        settings[key] = data[key];
       }
     });
-}
 
-function applyLoadedProfile(loadedSettings) {
-  Object.keys(loadedSettings).forEach(key => {
-    if (key !== 'nebulaColor' && settings[key] !== undefined) {
-      settings[key] = loadedSettings[key];
+    if (data.nebulaColor) {
+      nebula.style.background = data.nebulaColor;
     }
-  });
 
-  if (loadedSettings.nebulaColor) {
-    nebula.style.background = loadedSettings.nebulaColor;
-  }
+    // Reset profile name inputs to show preset is loaded
+    const nameInput = document.getElementById('profile-name');
+    const savedSelect = document.getElementById('saved-profiles');
+    if (nameInput) nameInput.value = '';
+    if (savedSelect) savedSelect.value = '';
 
-  // Reset custom profile name input fields to indicate template is loaded
-  document.getElementById('profile-name').value = '';
-  document.getElementById('saved-profiles').value = '';
+    // Synchronize settings state to UI and particles
+    applySettingsToUI();
+    
+    // Ensure the top picker select dropdown itself reflects the loaded preset
+    const presetPicker = document.getElementById('preset-picker');
+    if (presetPicker && presetPicker.value !== presetKey) {
+      presetPicker.value = presetKey;
+    }
+  };
 
-  // Synchronize settings state to UI and particles
-  applySettingsToUI();
+  // Try fetching the system templates JSON asynchronously
+  fetch(`./system_templates/${presetKey}.json`)
+    .then(response => {
+      if (!response.ok) throw new Error('Fetch failed');
+      return response.json();
+    })
+    .then(data => {
+      console.log(`Loaded system template: ${presetKey}.json`);
+      applyData(data);
+    })
+    .catch(err => {
+      // Fallback cleanly to built-in presets in case of CORS (file://) or offline network blocks
+      console.warn(`System templates fetch failed, using fallback preset [${presetKey}]:`, err);
+      if (fallbackPreset) {
+        applyData(fallbackPreset);
+      }
+    });
 }
 
 // Mouse/Touch triggers setup
@@ -1528,7 +1530,7 @@ function init() {
   
   populateProfilesDropdown();
   
-  loadSystemProfile('deep_space');
+  applyPreset('deep-space');
   
   loop();
 }
