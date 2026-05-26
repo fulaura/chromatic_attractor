@@ -126,7 +126,41 @@
             <span>Stable Orbit Radius</span>
             <span class="control-value" id="val-stable-radius">80px</span>
           </div>
-          <input type="range" id="stable-radius" min="20" max="250" step="5" value="80">
+          <input type="range" id="stable-radius" min="0" max="250" step="5" value="80">
+        </div>
+
+        <div class="control-group" id="center-fade-group">
+          <div class="control-label">
+            <span>Central Fade Out</span>
+            <span class="control-value" id="val-center-fade">0px</span>
+          </div>
+          <input type="range" id="center-fade" min="0" max="150" step="5" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Field Opacity</span>
+            <span class="control-value" id="val-field-opacity">15%</span>
+          </div>
+          <input type="range" id="field-opacity" min="0" max="100" step="5" value="15">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Field Color</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
+            <input type="color" id="field-color" value="#5e66ff" style="
+              border: 1px solid rgba(255,255,255,0.1);
+              padding: 0;
+              width: 36px;
+              height: 24px;
+              border-radius: 4px;
+              background: none;
+              cursor: pointer;
+            ">
+            <span id="val-field-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#5e66ff</span>
+          </div>
         </div>
       </div>
 

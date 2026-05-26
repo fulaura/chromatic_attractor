@@ -1,9 +1,11 @@
-// Cosmic Space-Time Canvas Simulator
-// Upgraded high-performance sandbox physics engine
-
-const canvas = document.getElementById('cosmic-canvas');
-const ctx = canvas.getContext('2d');
-const nebula = document.getElementById('nebula');
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 94, g: 102, b: 255 };
+}
 
 // Simulation Settings & Configurations
 const settings = {
@@ -18,6 +20,9 @@ const settings = {
   forceStrength: 1.5,
   forceRadius: 180,
   stableRadius: 80, // Accretion disk orbital balance radius
+  centerFade: 0, // Central singularity fade-out radius
+  fieldColor: '#5e66ff', // Visual indicator field color
+  fieldOpacity: 0.15, // Visual indicator base opacity
 
   // Spotlight / Occclusion parameters
   lightMode: 'disabled', // disabled, spotlight, veil
@@ -61,6 +66,9 @@ const presets = {
     forceStrength: 1.5,
     forceRadius: 180,
     stableRadius: 80,
+    centerFade: 0,
+    fieldColor: '#5e66ff',
+    fieldOpacity: 15,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
@@ -85,6 +93,9 @@ const presets = {
     forceStrength: 1.0,
     forceRadius: 100,
     stableRadius: 50,
+    centerFade: 0,
+    fieldColor: '#00f0ff',
+    fieldOpacity: 10,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
@@ -109,6 +120,9 @@ const presets = {
     forceStrength: 3.5,
     forceRadius: 300,
     stableRadius: 80,
+    centerFade: 35,
+    fieldColor: '#ff5e97',
+    fieldOpacity: 25,
     lightMode: 'veil', // Eclipses starfield near singularity core
     lightRadius: 220,
     lightSoftness: 140,
@@ -133,6 +147,9 @@ const presets = {
     forceStrength: 2.2,
     forceRadius: 250,
     stableRadius: 120,
+    centerFade: 15,
+    fieldColor: '#a55eff',
+    fieldOpacity: 20,
     lightMode: 'spotlight', // Lights up the galaxy swirl around cursor
     lightRadius: 250,
     lightSoftness: 100,
@@ -288,6 +305,19 @@ class Particle {
       this.alpha = this.alpha * spotlightMultiplier;
     }
 
+    // 2.5 Central Singularity Fade Out
+    if (settings.centerFade > 0 && mouse.x !== undefined && mouse.y !== undefined) {
+      const dx = this.x - mouse.x;
+      const dy = this.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < settings.centerFade) {
+        // Smooth linear fade to 0 at singularity core
+        const fadeFactor = dist / settings.centerFade;
+        this.alpha = this.alpha * fadeFactor;
+      }
+    }
+
     // 3. Spawns/Streaks calculations in Warp Drive
     if (settings.warpActive) {
       const dx = this.x - width / 2;
@@ -324,27 +354,21 @@ class Particle {
         } 
         else if (settings.forceType === 'attract') {
           const angle = Math.atan2(dy, dx);
-          const swirlAngle = angle + Math.PI / 2; // Accretion perpendicular vector
           const R_orb = settings.stableRadius;
           const diff = dist - R_orb;
 
-          // Potential equilibrium force
+          // Potential equilibrium force (Pure attraction outwards, push core inside stable orbit)
           if (diff > 0) {
             // Outside stable orbit: Pull inward
             const pullForce = (1 - diff / (settings.forceRadius - R_orb)) * settings.forceStrength * (mouse.isDown ? 2.5 : 1.0) * mouse.sizeMultiplier;
             this.vx -= Math.cos(angle) * pullForce * 1.5;
             this.vy -= Math.sin(angle) * pullForce * 1.5;
-          } else {
+          } else if (R_orb > 0) {
             // Inside stable orbit: Repel strongly outward to maintain potential core
             const pushForce = (1 - dist / R_orb) * settings.forceStrength * 4.0 * (mouse.isDown ? 3.5 : 1.0) * mouse.sizeMultiplier;
             this.vx += Math.cos(angle) * pushForce * 2.0;
             this.vy += Math.sin(angle) * pushForce * 2.0;
           }
-
-          // Swirling Accretion Disk tangent velocity
-          const swirlStrength = (1 - Math.abs(diff) / settings.forceRadius) * settings.forceStrength * 1.8;
-          this.vx += Math.cos(swirlAngle) * swirlStrength * (mouse.isDown ? 2.0 : 1.0);
-          this.vy += Math.sin(swirlAngle) * swirlStrength * (mouse.isDown ? 2.0 : 1.0);
         } 
         else if (settings.forceType === 'vortex') {
           const angle = Math.atan2(dy, dx);
@@ -557,7 +581,8 @@ function drawInteractiveOverlays() {
   if (mouse.x === undefined || mouse.y === undefined) return;
   
   const pulseScale = 1.0 + Math.sin(Date.now() * 0.003) * 0.03;
-  const opacityBase = mouse.isDown ? 0.35 : 0.15;
+  const fieldOpacityBase = settings.fieldOpacity * (mouse.isDown ? 2.0 : 1.0) * mouse.sizeMultiplier;
+  const rgb = hexToRgb(settings.fieldColor);
 
   // 1. Draw Force Field boundary glow (Repel / Attract Potential Wells)
   if (settings.forceType !== 'none') {
@@ -565,20 +590,9 @@ function drawInteractiveOverlays() {
     const stableRad = settings.stableRadius;
     
     const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, fieldRad);
-    if (settings.forceType === 'repel') {
-      grad.addColorStop(0, `rgba(94, 102, 255, ${opacityBase * 0.8})`);
-      grad.addColorStop(0.5, `rgba(94, 102, 255, ${opacityBase * 0.2})`);
-      grad.addColorStop(1, 'rgba(94, 102, 255, 0)');
-    } else if (settings.forceType === 'attract') {
-      // Eclipsing core and gold corona
-      grad.addColorStop(0, `rgba(255, 94, 151, ${opacityBase * 1.5})`);
-      grad.addColorStop(stableRad / fieldRad, `rgba(255, 94, 151, ${opacityBase * 0.35})`);
-      grad.addColorStop(1, 'rgba(255, 94, 151, 0)');
-    } else {
-      grad.addColorStop(0, `rgba(165, 94, 255, ${opacityBase * 0.8})`);
-      grad.addColorStop(0.6, `rgba(165, 94, 255, ${opacityBase * 0.2})`);
-      grad.addColorStop(1, 'rgba(165, 94, 255, 0)');
-    }
+    grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase})`);
+    grad.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.25})`);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     
     ctx.fillStyle = grad;
     ctx.beginPath();
@@ -586,8 +600,8 @@ function drawInteractiveOverlays() {
     ctx.fill();
     
     // stable orbit vector ring (accretion horizon)
-    if (settings.forceType === 'attract' || settings.forceType === 'vortex') {
-      ctx.strokeStyle = `rgba(255, 94, 151, ${opacityBase * 0.65})`;
+    if ((settings.forceType === 'attract' || settings.forceType === 'vortex') && stableRad > 0) {
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.8})`;
       ctx.lineWidth = 1.0;
       ctx.setLineDash([2, 6]);
       ctx.beginPath();
@@ -597,7 +611,7 @@ function drawInteractiveOverlays() {
     }
 
     // Outer gravity boundary
-    ctx.strokeStyle = settings.forceType === 'attract' ? `rgba(255, 94, 151, ${opacityBase * 0.3})` : `rgba(94, 102, 255, ${opacityBase * 0.3})`;
+    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.4})`;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
@@ -826,8 +840,18 @@ function applySettingsToUI() {
   document.getElementById('val-force-strength').innerText = settings.forceStrength.toFixed(1);
   document.getElementById('force-radius').value = settings.forceRadius;
   document.getElementById('val-force-radius').innerText = `${settings.forceRadius}px`;
+  
   document.getElementById('stable-radius').value = settings.stableRadius;
   document.getElementById('val-stable-radius').innerText = `${settings.stableRadius}px`;
+
+  document.getElementById('center-fade').value = settings.centerFade;
+  document.getElementById('val-center-fade').innerText = `${settings.centerFade}px`;
+
+  document.getElementById('field-opacity').value = Math.round(settings.fieldOpacity * 100);
+  document.getElementById('val-field-opacity').innerText = `${Math.round(settings.fieldOpacity * 100)}%`;
+
+  document.getElementById('field-color').value = settings.fieldColor;
+  document.getElementById('val-field-color').innerText = settings.fieldColor.toUpperCase();
 
   document.getElementById('light-mode').value = settings.lightMode;
   document.getElementById('light-radius').value = settings.lightRadius;
@@ -849,10 +873,13 @@ function applySettingsToUI() {
 
   // UI Visibility Collapsible updates
   const stableGroup = document.getElementById('stable-radius-group');
+  const centerFadeGroup = document.getElementById('center-fade-group');
   if (settings.forceType === 'attract' || settings.forceType === 'vortex') {
     stableGroup.classList.remove('hidden');
+    centerFadeGroup.classList.remove('hidden');
   } else {
     stableGroup.classList.add('hidden');
+    centerFadeGroup.classList.add('hidden');
   }
 
   const lRadiusGroup = document.getElementById('light-radius-group');
@@ -897,6 +924,16 @@ function bindUIControls() {
   const sStableRad = document.getElementById('stable-radius');
   const vStableRad = document.getElementById('val-stable-radius');
   const stableGroup = document.getElementById('stable-radius-group');
+
+  const sCenterFade = document.getElementById('center-fade');
+  const vCenterFade = document.getElementById('val-center-fade');
+  const centerFadeGroup = document.getElementById('center-fade-group');
+
+  const sFieldOpacity = document.getElementById('field-opacity');
+  const vFieldOpacity = document.getElementById('val-field-opacity');
+
+  const sFieldColor = document.getElementById('field-color');
+  const vFieldColor = document.getElementById('val-field-color');
 
   const lMode = document.getElementById('light-mode');
   const sLightRad = document.getElementById('light-radius');
@@ -962,8 +999,10 @@ function bindUIControls() {
   const updateForceUIVisibility = (val) => {
     if (val === 'attract' || val === 'vortex') {
       stableGroup.classList.remove('hidden');
+      centerFadeGroup.classList.remove('hidden');
     } else {
       stableGroup.classList.add('hidden');
+      centerFadeGroup.classList.add('hidden');
     }
   };
 
@@ -985,6 +1024,22 @@ function bindUIControls() {
   sStableRad.addEventListener('input', (e) => {
     settings.stableRadius = parseInt(e.target.value);
     vStableRad.innerText = `${settings.stableRadius}px`;
+  });
+
+  sCenterFade.addEventListener('input', (e) => {
+    settings.centerFade = parseInt(e.target.value);
+    vCenterFade.innerText = `${settings.centerFade}px`;
+  });
+
+  sFieldOpacity.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.fieldOpacity = val / 100;
+    vFieldOpacity.innerText = `${val}%`;
+  });
+
+  sFieldColor.addEventListener('input', (e) => {
+    settings.fieldColor = e.target.value;
+    vFieldColor.innerText = settings.fieldColor.toUpperCase();
   });
 
   const updateLightUIVisibility = (val) => {
