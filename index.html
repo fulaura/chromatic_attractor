@@ -381,6 +381,73 @@
         </div>
       </div>
 
+      <!-- Section: Refractive Zoom Lens -->
+      <div class="section">
+        <span class="section-title">Refractive Zoom Lens</span>
+        
+        <div class="toggle-group">
+          <div class="control-label">
+            <span>Zoom Lens</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="zoom-active" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="zoom-radius-group">
+          <div class="control-label">
+            <span>Lens Radius</span>
+            <span class="control-value" id="val-zoom-radius">150px</span>
+          </div>
+          <input type="range" id="zoom-radius" min="50" max="300" step="5" value="150">
+        </div>
+
+        <div class="control-group" id="zoom-multiplier-group">
+          <div class="control-label">
+            <span>Magnification</span>
+            <span class="control-value" id="val-zoom-multiplier">1.5x</span>
+          </div>
+          <input type="range" id="zoom-multiplier" min="0.4" max="3.0" step="0.1" value="1.5">
+        </div>
+
+        <div class="toggle-group" id="show-zoom-outline-group">
+          <div class="control-label">
+            <span>Show Lens Outline</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="show-zoom-outline" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="zoom-outline-opacity-group">
+          <div class="control-label">
+            <span>Outline Opacity</span>
+            <span class="control-value" id="val-zoom-outline-opacity">30%</span>
+          </div>
+          <input type="range" id="zoom-outline-opacity" min="0" max="100" step="1" value="30">
+        </div>
+
+        <div class="control-group" id="zoom-outline-color-group">
+          <div class="control-label">
+            <span>Outline Color</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
+            <input type="color" id="zoom-outline-color" value="#ffffff" style="
+              border: 1px solid rgba(255,255,255,0.1);
+              padding: 0;
+              width: 36px;
+              height: 24px;
+              border-radius: 4px;
+              background: none;
+              cursor: pointer;
+            ">
+            <span id="val-zoom-outline-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#FFFFFF</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Section: Profile Manager -->
       <div class="section">
         <span class="section-title">Profile Manager</span>

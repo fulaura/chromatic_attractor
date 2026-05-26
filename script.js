@@ -51,6 +51,14 @@ const settings = {
   aberrationOutlineOpacity: 0.35, // Visual overlay outline opacity
   bgColor: '#020206', // Cosmic backdrop space-time color
 
+  // Refractive Zoom Lens parameters
+  zoomActive: true, // Local refractive zoom lens active
+  zoomRadius: 150, // Radius of the lens
+  zoomMultiplier: 1.5, // Refractive magnification strength
+  showZoomOutline: true, // Show outline border of zoom lens
+  zoomOutlineColor: '#ffffff', // Zoom outline border color
+  zoomOutlineOpacity: 0.30, // Zoom outline border opacity
+
   warpActive: false, // Starburst radial flow
   colorTheme: 'deep-space' // deep-space, neon-swarm, monochrome
 };
@@ -103,7 +111,13 @@ const presets = {
     warpActive: false,
     colorTheme: 'deep-space',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)',
-    bgColor: '#020206'
+    bgColor: '#020206',
+    zoomActive: true,
+    zoomRadius: 150,
+    zoomMultiplier: 1.5,
+    showZoomOutline: true,
+    zoomOutlineColor: '#ffffff',
+    zoomOutlineOpacity: 0.30
   },
   'warp-drive': {
     starCount: 500,
@@ -139,7 +153,13 @@ const presets = {
     warpActive: true,
     colorTheme: 'warp',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, rgba(0, 0, 0, 0) 80%)',
-    bgColor: '#010510'
+    bgColor: '#010510',
+    zoomActive: false,
+    zoomRadius: 120,
+    zoomMultiplier: 1.8,
+    showZoomOutline: true,
+    zoomOutlineColor: '#00f0ff',
+    zoomOutlineOpacity: 0.30
   },
   'black-hole': {
     starCount: 400,
@@ -175,7 +195,13 @@ const presets = {
     warpActive: false,
     colorTheme: 'monochrome',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)',
-    bgColor: '#000000'
+    bgColor: '#000000',
+    zoomActive: true,
+    zoomRadius: 180,
+    zoomMultiplier: 2.2,
+    showZoomOutline: true,
+    zoomOutlineColor: '#ff5e97',
+    zoomOutlineOpacity: 0.40
   },
   'nebula-vortex': {
     starCount: 450,
@@ -211,7 +237,13 @@ const presets = {
     warpActive: false,
     colorTheme: 'neon-swarm',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)',
-    bgColor: '#030108'
+    bgColor: '#030108',
+    zoomActive: true,
+    zoomRadius: 140,
+    zoomMultiplier: 1.4,
+    showZoomOutline: true,
+    zoomOutlineColor: '#a55eff',
+    zoomOutlineOpacity: 0.30
   }
 };
 
@@ -458,6 +490,31 @@ class Particle {
   }
 
   draw() {
+    let renderX = this.x;
+    let renderY = this.y;
+    let currentSize = this.size * settings.starSizeMultiplier;
+    
+    // Apply refractive zoom lens magnification mapping if active
+    if (settings.zoomActive && mouse.x !== undefined && mouse.y !== undefined) {
+      const dx = this.x - mouse.x;
+      const dy = this.y - mouse.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const zRad = settings.zoomRadius;
+      
+      if (dist < zRad) {
+        const zMult = settings.zoomMultiplier || 1.5;
+        if (zMult > 0.01) {
+          const t = dist / zRad; // normalized distance: 0 to 1
+          // Refractive lens zoom profile interpolation (smooth quartic bezier curve)
+          const factor = 1 + (1 / zMult - 1) * Math.pow(1 - t * t, 2);
+          
+          renderX = mouse.x + dx * factor;
+          renderY = mouse.y + dy * factor;
+          currentSize = currentSize * (1 / factor);
+        }
+      }
+    }
+
     let aberrationAmt = 0;
     let dxRed = 0, dyRed = 0;
     let dxBlue = 0, dyBlue = 0;
@@ -510,7 +567,6 @@ class Particle {
     }
 
     // Dynamic scale integration
-    const sizeScaled = this.size * settings.starSizeMultiplier;
     const flareScaled = this.flareLength * settings.starSizeMultiplier;
 
     // 2. Perform rendering with Sub-pixel Channel Compositing
@@ -538,18 +594,18 @@ class Particle {
       }
       
       // Render Channel 1 (Red/Cyan/Gold) with shift offset
-      this.drawShape(this.x + dxRed, this.y + dyRed, sizeScaled, flareScaled, chanA_Color);
+      this.drawShape(renderX + dxRed, renderY + dyRed, currentSize, flareScaled, chanA_Color);
       
       // Render Channel 2 (Green/Yellow/White) at exact center anchor
-      this.drawShape(this.x, this.y, sizeScaled, flareScaled, chanB_Color);
+      this.drawShape(renderX, renderY, currentSize, flareScaled, chanB_Color);
       
       // Render Channel 3 (Blue/Magenta/Violet) with opposite shift offset
-      this.drawShape(this.x + dxBlue, this.y + dyBlue, sizeScaled, flareScaled, chanC_Color);
+      this.drawShape(renderX + dxBlue, renderY + dyBlue, currentSize, flareScaled, chanC_Color);
       
       ctx.globalCompositeOperation = 'source-over';
     } else {
       // Direct render (Max Frame-rate optimization)
-      this.drawShape(this.x, this.y, sizeScaled, flareScaled, `rgba(${this.r}, ${this.g}, ${this.b}, ${this.alpha})`);
+      this.drawShape(renderX, renderY, currentSize, flareScaled, `rgba(${this.r}, ${this.g}, ${this.b}, ${this.alpha})`);
     }
   }
 
@@ -736,6 +792,40 @@ function drawInteractiveOverlays() {
     ctx.arc(mouse.x, mouse.y, abRad + abWidth / 2, 0, Math.PI * 2);
     ctx.arc(mouse.x, mouse.y, abRad - abWidth / 2, 0, Math.PI * 2, true);
     ctx.fill();
+  }
+
+  // 4. Localized Refractive Zoom Lens Overlay
+  if (settings.zoomActive) {
+    const zRad = settings.zoomRadius;
+    const zOutRgb = hexToRgb(settings.zoomOutlineColor || '#ffffff');
+    const zOutOpacityBase = (settings.zoomOutlineOpacity !== undefined ? settings.zoomOutlineOpacity : 0.30) * (mouse.isDown ? 1.5 : 1.0) * mouse.sizeMultiplier;
+    
+    // Draw extremely soft magnification refraction lens backing glass overlay
+    const lensGrad = ctx.createRadialGradient(mouse.x, mouse.y, zRad * 0.7, mouse.x, mouse.y, zRad);
+    lensGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+    lensGrad.addColorStop(0.8, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
+    lensGrad.addColorStop(1, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
+    
+    ctx.fillStyle = lensGrad;
+    ctx.beginPath();
+    ctx.arc(mouse.x, mouse.y, zRad, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (settings.showFieldOutlines && (settings.showZoomOutline !== false)) {
+      ctx.strokeStyle = `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase})`;
+      ctx.lineWidth = 1.0;
+      ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize * 1.5, dashSize * 1.5] : []);
+      
+      ctx.save();
+      ctx.translate(mouse.x, mouse.y);
+      ctx.rotate(-Date.now() * 0.00025); // Very slow clockwise/counter-clockwise visual telemetry scan rotation
+      ctx.beginPath();
+      ctx.arc(0, 0, zRad, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
+    ctx.setLineDash([]);
   }
 }
 
@@ -1023,6 +1113,48 @@ function applySettingsToUI() {
     lAmbientGroup.classList.remove('hidden');
   }
 
+  // Sync Zoom Lens UI overlays controls with default fallbacks
+  document.getElementById('zoom-active').checked = settings.zoomActive !== undefined ? settings.zoomActive : true;
+  document.getElementById('zoom-radius').value = settings.zoomRadius !== undefined ? settings.zoomRadius : 150;
+  document.getElementById('val-zoom-radius').innerText = `${settings.zoomRadius !== undefined ? settings.zoomRadius : 150}px`;
+  document.getElementById('zoom-multiplier').value = settings.zoomMultiplier !== undefined ? settings.zoomMultiplier : 1.5;
+  document.getElementById('val-zoom-multiplier').innerText = `${(settings.zoomMultiplier !== undefined ? settings.zoomMultiplier : 1.5).toFixed(1)}x`;
+  document.getElementById('show-zoom-outline').checked = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
+  
+  const zOutlineOpacityPercent = Math.round((settings.zoomOutlineOpacity !== undefined ? settings.zoomOutlineOpacity : 0.30) * 100);
+  document.getElementById('zoom-outline-opacity').value = zOutlineOpacityPercent;
+  document.getElementById('val-zoom-outline-opacity').innerText = `${zOutlineOpacityPercent}%`;
+
+  document.getElementById('zoom-outline-color').value = settings.zoomOutlineColor || '#ffffff';
+  document.getElementById('val-zoom-outline-color').innerText = (settings.zoomOutlineColor || '#ffffff').toUpperCase();
+
+  // Zoom UI visibility panels
+  const zRadiusGroup = document.getElementById('zoom-radius-group');
+  const zMultiplierGroup = document.getElementById('zoom-multiplier-group');
+  const zShowOutlineGroup = document.getElementById('show-zoom-outline-group');
+  const zOutlineOpacityGroup = document.getElementById('zoom-outline-opacity-group');
+  const zOutlineColorGroup = document.getElementById('zoom-outline-color-group');
+
+  const isZoomActive = settings.zoomActive !== undefined ? settings.zoomActive : true;
+  const isZoomOutlineActive = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
+
+  const zGroups = [zRadiusGroup, zMultiplierGroup, zShowOutlineGroup];
+
+  if (isZoomActive) {
+    zGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+    if (isZoomOutlineActive) {
+      if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.remove('hidden');
+      if (zOutlineColorGroup) zOutlineColorGroup.classList.remove('hidden');
+    } else {
+      if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
+      if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
+    }
+  } else {
+    zGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+    if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
+    if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
+  }
+
   // Reload particle parameters
   updateParticleCount();
   updateParticleThemes();
@@ -1104,6 +1236,17 @@ function bindUIControls() {
   const vAbOutlineOpacity = document.getElementById('val-aberration-outline-opacity');
   const sAbOutlineColor = document.getElementById('aberration-outline-color');
   const vAbOutlineColor = document.getElementById('val-aberration-outline-color');
+
+  const tZoomActive = document.getElementById('zoom-active');
+  const sZoomRadius = document.getElementById('zoom-radius');
+  const vZoomRadius = document.getElementById('val-zoom-radius');
+  const sZoomMultiplier = document.getElementById('zoom-multiplier');
+  const vZoomMultiplier = document.getElementById('val-zoom-multiplier');
+  const tShowZoomOutline = document.getElementById('show-zoom-outline');
+  const sZoomOutlineOpacity = document.getElementById('zoom-outline-opacity');
+  const vZoomOutlineOpacity = document.getElementById('val-zoom-outline-opacity');
+  const sZoomOutlineColor = document.getElementById('zoom-outline-color');
+  const vZoomOutlineColor = document.getElementById('val-zoom-outline-color');
 
   const presetPicker = document.getElementById('preset-picker');
   
@@ -1347,6 +1490,65 @@ function bindUIControls() {
     vAbOutlineColor.innerText = settings.aberrationOutlineColor.toUpperCase();
   });
 
+  const updateZoomUIVisibility = () => {
+    const zRadiusGroup = document.getElementById('zoom-radius-group');
+    const zMultiplierGroup = document.getElementById('zoom-multiplier-group');
+    const zShowOutlineGroup = document.getElementById('show-zoom-outline-group');
+    const zOutlineOpacityGroup = document.getElementById('zoom-outline-opacity-group');
+    const zOutlineColorGroup = document.getElementById('zoom-outline-color-group');
+
+    const isZActive = settings.zoomActive !== undefined ? settings.zoomActive : true;
+    const isZOutActive = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
+
+    const zGroups = [zRadiusGroup, zMultiplierGroup, zShowOutlineGroup];
+
+    if (isZActive) {
+      zGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+      if (isZOutActive) {
+        if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.remove('hidden');
+        if (zOutlineColorGroup) zOutlineColorGroup.classList.remove('hidden');
+      } else {
+        if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
+        if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
+      }
+    } else {
+      zGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+      if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
+      if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
+    }
+  };
+
+  tZoomActive.addEventListener('change', (e) => {
+    settings.zoomActive = e.target.checked;
+    updateZoomUIVisibility();
+  });
+
+  sZoomRadius.addEventListener('input', (e) => {
+    settings.zoomRadius = parseInt(e.target.value);
+    vZoomRadius.innerText = `${settings.zoomRadius}px`;
+  });
+
+  sZoomMultiplier.addEventListener('input', (e) => {
+    settings.zoomMultiplier = parseFloat(e.target.value);
+    vZoomMultiplier.innerText = `${settings.zoomMultiplier.toFixed(1)}x`;
+  });
+
+  tShowZoomOutline.addEventListener('change', (e) => {
+    settings.showZoomOutline = e.target.checked;
+    updateZoomUIVisibility();
+  });
+
+  sZoomOutlineOpacity.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.zoomOutlineOpacity = val / 100;
+    vZoomOutlineOpacity.innerText = `${val}%`;
+  });
+
+  sZoomOutlineColor.addEventListener('input', (e) => {
+    settings.zoomOutlineColor = e.target.value;
+    vZoomOutlineColor.innerText = settings.zoomOutlineColor.toUpperCase();
+  });
+
   if (presetPicker) {
     presetPicker.addEventListener('change', (e) => {
       applyPreset(e.target.value);
@@ -1384,6 +1586,7 @@ function bindUIControls() {
   updateOutlineUIVisibility();
   updateAberrationUIVisibility();
   updateLightUIVisibility(settings.lightMode);
+  updateZoomUIVisibility();
 }
 
 // Preset applicator with local JSON fetch and safe offline/CORS fallback

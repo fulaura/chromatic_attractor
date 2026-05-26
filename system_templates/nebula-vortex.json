@@ -32,5 +32,11 @@
   "warpActive": false,
   "colorTheme": "neon-swarm",
   "nebulaColor": "radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)",
-  "bgColor": "#030108"
+  "bgColor": "#030108",
+  "zoomActive": true,
+  "zoomRadius": 140,
+  "zoomMultiplier": 1.4,
+  "showZoomOutline": true,
+  "zoomOutlineColor": "#a55eff",
+  "zoomOutlineOpacity": 0.30
 }
