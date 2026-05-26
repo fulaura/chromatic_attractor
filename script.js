@@ -43,8 +43,13 @@ const settings = {
   aberrationColor: 'rgb', // rgb, cyberpunk, supernova
   aberrationRadius: 120,
   aberrationWidth: 60,
-  aberrationRingColor: '#ffffff', // Custom HUD aberration indicator ring color
   aberrationSplit: 8, // Master Shift Strength
+  aberrationFieldOpacity: 0.12, // Visual ring glow base opacity
+  aberrationFieldColor: '#ffffff', // Visual ring glow base color
+  aberrationShowOutline: true, // Show outline of the ring
+  aberrationOutlineColor: '#ffffff', // Color of ring outline
+  aberrationOutlineOpacity: 0.35, // Opacity of ring outline
+  aberrationOutlineStyle: 'dashed', // Outline style: dashed vs solid
 
   warpActive: false, // Starburst radial flow
   colorTheme: 'deep-space' // deep-space, neon-swarm, monochrome
@@ -67,7 +72,7 @@ const presets = {
   'deep-space': {
     starCount: 300,
     starSizeMultiplier: 1.0,
-    crossRatio: 25,
+    crossRatio: 0.25,
     baseSpeed: 0.4,
     twinkleActive: true,
     forceType: 'repel',
@@ -76,21 +81,26 @@ const presets = {
     stableRadius: 80,
     centerFade: 0,
     fieldColor: '#5e66ff',
-    fieldOpacity: 15,
+    fieldOpacity: 0.15,
     showFieldOutlines: true,
     fieldOutlineStyle: 'dashed',
     fieldOutlineDashSize: 8,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
-    lightAmbient: 15,
+    lightAmbient: 0.15,
     aberrationActive: true,
     aberrationMode: 'radial',
     aberrationColor: 'rgb',
     aberrationRadius: 120,
     aberrationWidth: 60,
-    aberrationRingColor: '#ffffff',
     aberrationSplit: 8,
+    aberrationFieldOpacity: 0.12,
+    aberrationFieldColor: '#ffffff',
+    aberrationShowOutline: true,
+    aberrationOutlineColor: '#ffffff',
+    aberrationOutlineOpacity: 0.35,
+    aberrationOutlineStyle: 'dashed',
     warpActive: false,
     colorTheme: 'deep-space',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)'
@@ -98,7 +108,7 @@ const presets = {
   'warp-drive': {
     starCount: 500,
     starSizeMultiplier: 1.2,
-    crossRatio: 10,
+    crossRatio: 0.10,
     baseSpeed: 4.0,
     twinkleActive: false,
     forceType: 'repel',
@@ -107,21 +117,26 @@ const presets = {
     stableRadius: 50,
     centerFade: 0,
     fieldColor: '#00f0ff',
-    fieldOpacity: 10,
+    fieldOpacity: 0.10,
     showFieldOutlines: true,
     fieldOutlineStyle: 'solid',
     fieldOutlineDashSize: 8,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
-    lightAmbient: 15,
+    lightAmbient: 0.15,
     aberrationActive: true,
     aberrationMode: 'radial',
     aberrationColor: 'cyberpunk',
     aberrationRadius: 200,
     aberrationWidth: 80,
-    aberrationRingColor: '#00f0ff',
     aberrationSplit: 12,
+    aberrationFieldOpacity: 0.12,
+    aberrationFieldColor: '#00f0ff',
+    aberrationShowOutline: true,
+    aberrationOutlineColor: '#00f0ff',
+    aberrationOutlineOpacity: 0.35,
+    aberrationOutlineStyle: 'solid',
     warpActive: true,
     colorTheme: 'warp',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, rgba(0, 0, 0, 0) 80%)'
@@ -129,7 +144,7 @@ const presets = {
   'black-hole': {
     starCount: 400,
     starSizeMultiplier: 0.9,
-    crossRatio: 20,
+    crossRatio: 0.20,
     baseSpeed: 0.2,
     twinkleActive: true,
     forceType: 'attract',
@@ -138,21 +153,26 @@ const presets = {
     stableRadius: 80,
     centerFade: 35,
     fieldColor: '#ff5e97',
-    fieldOpacity: 25,
+    fieldOpacity: 0.25,
     showFieldOutlines: true,
     fieldOutlineStyle: 'dashed',
     fieldOutlineDashSize: 12,
     lightMode: 'veil', // Eclipses starfield near singularity core
     lightRadius: 220,
     lightSoftness: 140,
-    lightAmbient: 10,
+    lightAmbient: 0.10,
     aberrationActive: true,
     aberrationMode: 'rotational', // Spiral warping
     aberrationColor: 'supernova',
     aberrationRadius: 140,
     aberrationWidth: 100,
-    aberrationRingColor: '#ff5e97',
     aberrationSplit: 18,
+    aberrationFieldOpacity: 0.15,
+    aberrationFieldColor: '#ff5e97',
+    aberrationShowOutline: true,
+    aberrationOutlineColor: '#ff5e97',
+    aberrationOutlineOpacity: 0.35,
+    aberrationOutlineStyle: 'dashed',
     warpActive: false,
     colorTheme: 'monochrome',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)'
@@ -160,7 +180,7 @@ const presets = {
   'nebula-vortex': {
     starCount: 450,
     starSizeMultiplier: 1.1,
-    crossRatio: 35,
+    crossRatio: 0.35,
     baseSpeed: 0.6,
     twinkleActive: true,
     forceType: 'vortex',
@@ -169,21 +189,26 @@ const presets = {
     stableRadius: 120,
     centerFade: 15,
     fieldColor: '#a55eff',
-    fieldOpacity: 20,
+    fieldOpacity: 0.20,
     showFieldOutlines: true,
     fieldOutlineStyle: 'dashed',
     fieldOutlineDashSize: 6,
     lightMode: 'spotlight', // Lights up the galaxy swirl around cursor
     lightRadius: 250,
     lightSoftness: 100,
-    lightAmbient: 5,
+    lightAmbient: 0.05,
     aberrationActive: true,
     aberrationMode: 'radial',
     aberrationColor: 'cyberpunk',
     aberrationRadius: 160,
     aberrationWidth: 80,
-    aberrationRingColor: '#a55eff',
     aberrationSplit: 10,
+    aberrationFieldOpacity: 0.12,
+    aberrationFieldColor: '#a55eff',
+    aberrationShowOutline: true,
+    aberrationOutlineColor: '#a55eff',
+    aberrationOutlineOpacity: 0.35,
+    aberrationOutlineStyle: 'dashed',
     warpActive: false,
     colorTheme: 'neon-swarm',
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)'
@@ -674,12 +699,15 @@ function drawInteractiveOverlays() {
   if (settings.aberrationActive) {
     const abRad = settings.aberrationRadius;
     const abWidth = settings.aberrationWidth;
-    const abRgb = hexToRgb(settings.aberrationRingColor);
 
-    if (settings.showFieldOutlines) {
-      ctx.strokeStyle = `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, ${opacityBase * 0.55})`;
+    // 3.1 Draw customized outlines based on aberration outline settings
+    if (settings.aberrationShowOutline) {
+      const abOutlineRgb = hexToRgb(settings.aberrationOutlineColor);
+      const abOutlineOpacityBase = settings.aberrationOutlineOpacity * (mouse.isDown ? 2.0 : 1.0) * mouse.sizeMultiplier;
+      
+      ctx.strokeStyle = `rgba(${abOutlineRgb.r}, ${abOutlineRgb.g}, ${abOutlineRgb.b}, ${abOutlineOpacityBase})`;
       ctx.lineWidth = 0.8;
-      ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize, dashSize * 3.0] : []);
+      ctx.setLineDash(settings.aberrationOutlineStyle === 'dashed' ? [dashSize, dashSize * 3.0] : []);
       
       ctx.save();
       ctx.translate(mouse.x, mouse.y);
@@ -692,13 +720,17 @@ function drawInteractiveOverlays() {
     
     ctx.setLineDash([]);
 
+    // 3.2 Draw custom fill color & opacity controls for aberration ring glow
+    const abRgb = hexToRgb(settings.aberrationFieldColor);
+    const abFieldOpacityBase = settings.aberrationFieldOpacity * (mouse.isDown ? 2.0 : 1.0) * mouse.sizeMultiplier;
+
     const ringGrad = ctx.createRadialGradient(
       mouse.x, mouse.y, abRad - abWidth / 2, 
       mouse.x, mouse.y, abRad + abWidth / 2
     );
     
     ringGrad.addColorStop(0, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, 0)`);
-    ringGrad.addColorStop(0.5, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, ${opacityBase * 0.16})`);
+    ringGrad.addColorStop(0.5, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, ${abFieldOpacityBase})`);
     ringGrad.addColorStop(1, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, 0)`);
     
     ctx.fillStyle = ringGrad;
@@ -896,10 +928,32 @@ function applySettingsToUI() {
   document.getElementById('val-aberration-radius').innerText = `${settings.aberrationRadius}px`;
   document.getElementById('aberration-width').value = settings.aberrationWidth;
   document.getElementById('val-aberration-width').innerText = `${settings.aberrationWidth}px`;
-  document.getElementById('aberration-ring-color').value = settings.aberrationRingColor;
-  document.getElementById('val-aberration-ring-color').innerText = settings.aberrationRingColor.toUpperCase();
   document.getElementById('aberration-split').value = settings.aberrationSplit;
   document.getElementById('val-aberration-split').innerText = `${settings.aberrationSplit}px`;
+
+  document.getElementById('aberration-field-opacity').value = Math.round(settings.aberrationFieldOpacity * 100);
+  document.getElementById('val-aberration-field-opacity').innerText = `${Math.round(settings.aberrationFieldOpacity * 100)}%`;
+  document.getElementById('aberration-field-color').value = settings.aberrationFieldColor;
+  document.getElementById('val-aberration-field-color').innerText = settings.aberrationFieldColor.toUpperCase();
+  document.getElementById('aberration-show-outline').checked = settings.aberrationShowOutline;
+  document.getElementById('aberration-outline-color').value = settings.aberrationOutlineColor;
+  document.getElementById('val-aberration-outline-color').innerText = settings.aberrationOutlineColor.toUpperCase();
+  document.getElementById('aberration-outline-opacity').value = Math.round(settings.aberrationOutlineOpacity * 100);
+  document.getElementById('val-aberration-outline-opacity').innerText = `${Math.round(settings.aberrationOutlineOpacity * 100)}%`;
+  document.getElementById('aberration-outline-style').value = settings.aberrationOutlineStyle;
+
+  const abOutlineColorGroup = document.getElementById('aberration-outline-color-group');
+  const abOutlineOpacityGroup = document.getElementById('aberration-outline-opacity-group');
+  const abOutlineStyleGroup = document.getElementById('aberration-outline-style-group');
+  if (settings.aberrationShowOutline) {
+    abOutlineColorGroup.classList.remove('hidden');
+    abOutlineOpacityGroup.classList.remove('hidden');
+    abOutlineStyleGroup.classList.remove('hidden');
+  } else {
+    abOutlineColorGroup.classList.add('hidden');
+    abOutlineOpacityGroup.classList.add('hidden');
+    abOutlineStyleGroup.classList.add('hidden');
+  }
 
   // UI Visibility Collapsible updates
   const stableGroup = document.getElementById('stable-radius-group');
@@ -1006,10 +1060,22 @@ function bindUIControls() {
   const vAberrationRad = document.getElementById('val-aberration-radius');
   const sAberrationWidth = document.getElementById('aberration-width');
   const vAberrationWidth = document.getElementById('val-aberration-width');
-  const sAberrationRingColor = document.getElementById('aberration-ring-color');
-  const vAberrationRingColor = document.getElementById('val-aberration-ring-color');
   const sAberrationSplit = document.getElementById('aberration-split');
   const vAberrationSplit = document.getElementById('val-aberration-split');
+
+  const sAberrationFieldOpacity = document.getElementById('aberration-field-opacity');
+  const vAberrationFieldOpacity = document.getElementById('val-aberration-field-opacity');
+  const sAberrationFieldColor = document.getElementById('aberration-field-color');
+  const vAberrationFieldColor = document.getElementById('val-aberration-field-color');
+  const tAberrationShowOutline = document.getElementById('aberration-show-outline');
+  const sAberrationOutlineColor = document.getElementById('aberration-outline-color');
+  const vAberrationOutlineColor = document.getElementById('val-aberration-outline-color');
+  const sAberrationOutlineOpacity = document.getElementById('aberration-outline-opacity');
+  const vAberrationOutlineOpacity = document.getElementById('val-aberration-outline-opacity');
+  const sAberrationOutlineStyle = document.getElementById('aberration-outline-style');
+  const abOutlineColorGroup = document.getElementById('aberration-outline-color-group');
+  const abOutlineOpacityGroup = document.getElementById('aberration-outline-opacity-group');
+  const abOutlineStyleGroup = document.getElementById('aberration-outline-style-group');
 
   const presetsGrid = document.querySelectorAll('.btn-preset');
   
@@ -1180,14 +1246,52 @@ function bindUIControls() {
     vAberrationWidth.innerText = `${settings.aberrationWidth}px`;
   });
 
-  sAberrationRingColor.addEventListener('input', (e) => {
-    settings.aberrationRingColor = e.target.value;
-    vAberrationRingColor.innerText = settings.aberrationRingColor.toUpperCase();
-  });
-
   sAberrationSplit.addEventListener('input', (e) => {
     settings.aberrationSplit = parseInt(e.target.value);
     vAberrationSplit.innerText = `${settings.aberrationSplit}px`;
+  });
+
+  sAberrationFieldOpacity.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.aberrationFieldOpacity = val / 100;
+    vAberrationFieldOpacity.innerText = `${val}%`;
+  });
+
+  sAberrationFieldColor.addEventListener('input', (e) => {
+    settings.aberrationFieldColor = e.target.value;
+    vAberrationFieldColor.innerText = settings.aberrationFieldColor.toUpperCase();
+  });
+
+  const updateAberrationOutlineUIVisibility = () => {
+    if (settings.aberrationShowOutline) {
+      abOutlineColorGroup.classList.remove('hidden');
+      abOutlineOpacityGroup.classList.remove('hidden');
+      abOutlineStyleGroup.classList.remove('hidden');
+    } else {
+      abOutlineColorGroup.classList.add('hidden');
+      abOutlineOpacityGroup.classList.add('hidden');
+      abOutlineStyleGroup.classList.add('hidden');
+    }
+  };
+
+  tAberrationShowOutline.addEventListener('change', (e) => {
+    settings.aberrationShowOutline = e.target.checked;
+    updateAberrationOutlineUIVisibility();
+  });
+
+  sAberrationOutlineColor.addEventListener('input', (e) => {
+    settings.aberrationOutlineColor = e.target.value;
+    vAberrationOutlineColor.innerText = settings.aberrationOutlineColor.toUpperCase();
+  });
+
+  sAberrationOutlineOpacity.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.aberrationOutlineOpacity = val / 100;
+    vAberrationOutlineOpacity.innerText = `${val}%`;
+  });
+
+  sAberrationOutlineStyle.addEventListener('change', (e) => {
+    settings.aberrationOutlineStyle = e.target.value;
   });
 
   presetsGrid.forEach(btn => {
@@ -1228,6 +1332,7 @@ function bindUIControls() {
   updateForceUIVisibility(settings.forceType);
   updateOutlineUIVisibility();
   updateLightUIVisibility(settings.lightMode);
+  updateAberrationOutlineUIVisibility();
 }
 
 // Preset applicator
