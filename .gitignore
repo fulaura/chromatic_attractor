@@ -1,0 +1,5 @@
+# Caches & Local Logs
+.vite/
+node_modules/
+*.log
+.DS_Store
