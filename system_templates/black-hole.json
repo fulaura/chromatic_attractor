@@ -37,6 +37,7 @@
   "showZoomGlass": true,
   "zoomProfile": "gravitational",
   "zoomRadius": 180,
+  "zoomInnerRadius": 0,
   "zoomMultiplier": 2.2,
   "zoomDispersion": 0.25,
   "zoomAspect": 1.0,

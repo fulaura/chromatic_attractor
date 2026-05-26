@@ -56,6 +56,7 @@ const settings = {
   showZoomGlass: true, // Show visual frosted backing glass overlay
   zoomProfile: 'optical', // optical, gravitational, pinch, prismatic
   zoomRadius: 150, // Radius of the lens
+  zoomInnerRadius: 0, // Inner radius for ring-shaped lens
   zoomMultiplier: 1.5, // Refractive magnification strength
   zoomDispersion: 0.15, // Prismatic color dispersion split
   zoomAspect: 1.0, // Oval stretch ratio
@@ -125,6 +126,7 @@ const presets = {
     showZoomGlass: true,
     zoomProfile: 'optical',
     zoomRadius: 150,
+    zoomInnerRadius: 0,
     zoomMultiplier: 1.5,
     zoomDispersion: 0.15,
     zoomAspect: 1.0,
@@ -176,6 +178,7 @@ const presets = {
     showZoomGlass: true,
     zoomProfile: 'optical',
     zoomRadius: 120,
+    zoomInnerRadius: 0,
     zoomMultiplier: 1.8,
     zoomDispersion: 0.10,
     zoomAspect: 1.0,
@@ -227,6 +230,7 @@ const presets = {
     showZoomGlass: true,
     zoomProfile: 'gravitational',
     zoomRadius: 180,
+    zoomInnerRadius: 0,
     zoomMultiplier: 2.2,
     zoomDispersion: 0.25,
     zoomAspect: 1.0,
@@ -278,6 +282,7 @@ const presets = {
     showZoomGlass: true,
     zoomProfile: 'prismatic',
     zoomRadius: 140,
+    zoomInnerRadius: 0,
     zoomMultiplier: 1.4,
     zoomDispersion: 0.20,
     zoomAspect: 1.0,
@@ -579,20 +584,43 @@ class Particle {
         const stretchedDy = rotatedDy / stretchY;
         const effDist = Math.sqrt(stretchedDx * stretchedDx + stretchedDy * stretchedDy);
         const zRad = settings.zoomRadius;
+        const zInnerRad = settings.zoomInnerRadius !== undefined ? settings.zoomInnerRadius : 0;
         
-        if (effDist < zRad) {
-          const t = effDist / zRad;
+        if (effDist < zRad && effDist >= zInnerRad) {
           const profile = settings.zoomProfile || 'optical';
           let factor = 1.0;
+          let blend = 1.0;
           
-          if (profile === 'optical') {
-            factor = 1 + (mult - 1) * Math.pow(1 - t * t, 2);
-          } else if (profile === 'pinch') {
-            factor = 1 + (1 / mult - 1) * Math.pow(1 - t * t, 2);
-          } else if (profile === 'gravitational') {
-            factor = 1 + (mult - 1) * (1 - t) * (1 / (t + 0.15));
-          } else if (profile === 'prismatic') {
-            factor = 1 + (mult - 1) * Math.pow(1 - t * t, 2);
+          if (zInnerRad === 0) {
+            const t = effDist / zRad;
+            blend = Math.pow(1 - t * t, 2);
+            
+            if (profile === 'optical') {
+              factor = 1 + (mult - 1) * Math.pow(1 - t * t, 2);
+            } else if (profile === 'pinch') {
+              factor = 1 + (1 / mult - 1) * Math.pow(1 - t * t, 2);
+            } else if (profile === 'gravitational') {
+              factor = 1 + (mult - 1) * (1 - t) * (1 / (t + 0.15));
+            } else if (profile === 'prismatic') {
+              factor = 1 + (mult - 1) * Math.pow(1 - t * t, 2);
+            }
+          } else {
+            const dMid = (zInnerRad + zRad) / 2;
+            const wHalf = (zRad - zInnerRad) / 2;
+            const x = (effDist - dMid) / wHalf;
+            const b = Math.pow(1 - x * x, 2);
+            blend = b;
+            
+            if (profile === 'optical') {
+              factor = 1 + (mult - 1) * b;
+            } else if (profile === 'pinch') {
+              factor = 1 + (1 / mult - 1) * b;
+            } else if (profile === 'gravitational') {
+              const tRing = Math.abs(x);
+              factor = 1 + (mult - 1) * (1 - tRing) * (1 / (tRing + 0.15));
+            } else if (profile === 'prismatic') {
+              factor = 1 + (mult - 1) * b;
+            }
           }
           
           let finalStretchedDx = stretchedDx * factor;
@@ -603,7 +631,6 @@ class Particle {
             const localAngle = Math.atan2(stretchedDy, stretchedDx);
             const segment = Math.floor((localAngle + Math.PI) / (Math.PI * 2 / facets));
             const targetAngle = -Math.PI + (segment + 0.5) * (Math.PI * 2 / facets);
-            const blend = Math.pow(1 - t, 2);
             const finalAngle = localAngle * (1 - blend) + targetAngle * blend;
             finalStretchedDx = Math.cos(finalAngle) * effDist * factor;
             finalStretchedDy = Math.sin(finalAngle) * effDist * factor;
@@ -964,15 +991,29 @@ function drawInteractiveOverlays() {
     ctx.scale(downScale, downScale);
     ctx.scale(mouse.sizeMultiplier, mouse.sizeMultiplier);
 
-    const lensGrad = ctx.createRadialGradient(0, 0, zRad * 0.7, 0, 0, zRad);
-    lensGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-    lensGrad.addColorStop(0.8, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
-    lensGrad.addColorStop(1, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
+    const zInnerRad = settings.zoomInnerRadius !== undefined ? settings.zoomInnerRadius : 0;
+    let lensGrad;
+    if (zInnerRad === 0) {
+      lensGrad = ctx.createRadialGradient(0, 0, zRad * 0.7, 0, 0, zRad);
+      lensGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+      lensGrad.addColorStop(0.8, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
+      lensGrad.addColorStop(1, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
+    } else {
+      lensGrad = ctx.createRadialGradient(0, 0, zInnerRad, 0, 0, zRad);
+      lensGrad.addColorStop(0, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
+      lensGrad.addColorStop(0.2, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
+      lensGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+      lensGrad.addColorStop(0.8, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
+      lensGrad.addColorStop(1, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
+    }
     
     if (settings.showZoomGlass !== false) {
       ctx.fillStyle = lensGrad;
       ctx.beginPath();
       ctx.arc(0, 0, zRad, 0, Math.PI * 2);
+      if (zInnerRad > 0) {
+        ctx.arc(0, 0, zInnerRad, 0, Math.PI * 2, true);
+      }
       ctx.fill();
     }
 
@@ -981,12 +1022,25 @@ function drawInteractiveOverlays() {
       ctx.lineWidth = 1.0 / Math.max(stretchX, stretchY); // keep outline stroke thin
       ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize * 1.5, dashSize * 1.5] : []);
       
+      const timeFactor = Date.now() * 0.00025;
+      
+      // Outer outline (clockwise rotation)
       ctx.save();
-      ctx.rotate(-Date.now() * 0.00025); // Very slow clockwise/counter-clockwise visual telemetry scan rotation
+      ctx.rotate(-timeFactor);
       ctx.beginPath();
       ctx.arc(0, 0, zRad, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
+      
+      // Inner outline (counter-clockwise rotation)
+      if (zInnerRad > 0) {
+        ctx.save();
+        ctx.rotate(timeFactor * 1.5);
+        ctx.beginPath();
+        ctx.arc(0, 0, zInnerRad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
     
     ctx.restore();
@@ -1284,6 +1338,8 @@ function applySettingsToUI() {
   document.getElementById('zoom-profile').value = settings.zoomProfile || 'optical';
   document.getElementById('zoom-radius').value = settings.zoomRadius !== undefined ? settings.zoomRadius : 150;
   document.getElementById('val-zoom-radius').innerText = `${settings.zoomRadius !== undefined ? settings.zoomRadius : 150}px`;
+  document.getElementById('zoom-inner-radius').value = settings.zoomInnerRadius !== undefined ? settings.zoomInnerRadius : 0;
+  document.getElementById('val-zoom-inner-radius').innerText = `${settings.zoomInnerRadius !== undefined ? settings.zoomInnerRadius : 0}px`;
   document.getElementById('zoom-multiplier').value = settings.zoomMultiplier !== undefined ? settings.zoomMultiplier : 1.5;
   document.getElementById('val-zoom-multiplier').innerText = `${(settings.zoomMultiplier !== undefined ? settings.zoomMultiplier : 1.5).toFixed(1)}x`;
 
@@ -1325,6 +1381,7 @@ function applySettingsToUI() {
   const zShowGlassGroup = document.getElementById('show-zoom-glass-group');
   const zProfileGroup = document.getElementById('zoom-profile-group');
   const zRadiusGroup = document.getElementById('zoom-radius-group');
+  const zInnerRadiusGroup = document.getElementById('zoom-inner-radius-group');
   const zMultiplierGroup = document.getElementById('zoom-multiplier-group');
   const zDispersionGroup = document.getElementById('zoom-dispersion-group');
   const zAspectGroup = document.getElementById('zoom-aspect-group');
@@ -1343,7 +1400,7 @@ function applySettingsToUI() {
   const isZoomOutlineActive = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
 
   const zGroups = [
-    zShowGlassGroup, zProfileGroup, zRadiusGroup, zMultiplierGroup, zDispersionGroup, 
+    zShowGlassGroup, zProfileGroup, zRadiusGroup, zInnerRadiusGroup, zMultiplierGroup, zDispersionGroup, 
     zAspectGroup, zElongationGroup, zShowOutlineGroup
   ];
 
@@ -1465,6 +1522,8 @@ function bindUIControls() {
   const tZoomActive = document.getElementById('zoom-active');
   const sZoomRadius = document.getElementById('zoom-radius');
   const vZoomRadius = document.getElementById('val-zoom-radius');
+  const sZoomInnerRadius = document.getElementById('zoom-inner-radius');
+  const vZoomInnerRadius = document.getElementById('val-zoom-inner-radius');
   const sZoomMultiplier = document.getElementById('zoom-multiplier');
   const vZoomMultiplier = document.getElementById('val-zoom-multiplier');
   const tShowZoomOutline = document.getElementById('show-zoom-outline');
@@ -1807,6 +1866,19 @@ function bindUIControls() {
   sZoomRadius.addEventListener('input', (e) => {
     settings.zoomRadius = parseInt(e.target.value);
     vZoomRadius.innerText = `${settings.zoomRadius}px`;
+    
+    if (settings.zoomInnerRadius >= settings.zoomRadius) {
+      settings.zoomInnerRadius = Math.max(0, settings.zoomRadius - 10);
+      sZoomInnerRadius.value = settings.zoomInnerRadius;
+      vZoomInnerRadius.innerText = `${settings.zoomInnerRadius}px`;
+    }
+  });
+
+  sZoomInnerRadius.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value);
+    settings.zoomInnerRadius = Math.min(val, settings.zoomRadius - 10);
+    sZoomInnerRadius.value = settings.zoomInnerRadius;
+    vZoomInnerRadius.innerText = `${settings.zoomInnerRadius}px`;
   });
 
   sZoomMultiplier.addEventListener('input', (e) => {
@@ -2069,6 +2141,17 @@ function loop() {
       glass.style.backdropFilter = `blur(${blurVal}px)`;
       glass.style.webkitBackdropFilter = `blur(${blurVal}px)`;
       glass.style.background = `rgba(${tintRgb.r}, ${tintRgb.g}, ${tintRgb.b}, ${tintOpacity})`;
+      
+      const zInnerRad = settings.zoomInnerRadius !== undefined ? settings.zoomInnerRadius : 0;
+      if (zInnerRad > 0) {
+        const innerPercent = (zInnerRad / r) * 100;
+        const maskStyle = `radial-gradient(circle, transparent 0%, transparent ${innerPercent}%, black ${innerPercent}%, black 100%)`;
+        glass.style.maskImage = maskStyle;
+        glass.style.webkitMaskImage = maskStyle;
+      } else {
+        glass.style.maskImage = '';
+        glass.style.webkitMaskImage = '';
+      }
       
       // Calculate dynamic aspect ratio and speed-elongation transforms
       let angle = 0;

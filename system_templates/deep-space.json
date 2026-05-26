@@ -37,6 +37,7 @@
   "showZoomGlass": true,
   "zoomProfile": "optical",
   "zoomRadius": 150,
+  "zoomInnerRadius": 0,
   "zoomMultiplier": 1.5,
   "zoomDispersion": 0.15,
   "zoomAspect": 1.0,
