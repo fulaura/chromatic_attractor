@@ -955,8 +955,9 @@ function drawInteractiveOverlays() {
     ctx.translate(mouse.x, mouse.y);
     ctx.rotate(angle);
     ctx.scale(stretchX, stretchY);
-    ctx.scale(mouse.isDown ? 1.05 : 1.0);
-    ctx.scale(mouse.sizeMultiplier);
+    const downScale = mouse.isDown ? 1.05 : 1.0;
+    ctx.scale(downScale, downScale);
+    ctx.scale(mouse.sizeMultiplier, mouse.sizeMultiplier);
 
     const lensGrad = ctx.createRadialGradient(0, 0, zRad * 0.7, 0, 0, zRad);
     lensGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
