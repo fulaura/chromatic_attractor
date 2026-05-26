@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-color: #020206;
@@ -10,7 +10,7 @@
   --accent-glow: rgba(94, 102, 255, 0.4);
   --accent-rgb: 94, 102, 255;
   --accent-danger: #ff5e97;
-  --font-title: 'Orbitron', sans-serif;
+  --font-title: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
 }
 
