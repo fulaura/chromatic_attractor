@@ -162,6 +162,34 @@
             <span id="val-field-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#5e66ff</span>
           </div>
         </div>
+
+        <div class="toggle-group">
+          <div class="control-label">
+            <span>Show Outlines</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="show-outlines" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="outline-style-group">
+          <div class="control-label">
+            <span>Outline Style</span>
+          </div>
+          <select id="outline-style">
+            <option value="dashed">Futuristic Dashed</option>
+            <option value="solid">Clean Solid</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="outline-dash-group">
+          <div class="control-label">
+            <span>Dash Spacing</span>
+            <span class="control-value" id="val-outline-dash">8px</span>
+          </div>
+          <input type="range" id="outline-dash" min="2" max="30" step="1" value="8">
+        </div>
       </div>
 
       <!-- Section: Cosmic Spotlight -->

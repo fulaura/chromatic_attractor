@@ -27,6 +27,9 @@ const settings = {
   centerFade: 0, // Central singularity fade-out radius
   fieldColor: '#5e66ff', // Visual indicator field color
   fieldOpacity: 0.15, // Visual indicator base opacity
+  showFieldOutlines: true, // HUD outlines visible
+  fieldOutlineStyle: 'dashed', // Outlines style: dashed vs solid
+  fieldOutlineDashSize: 8, // Outlines dash spacing size
 
   // Spotlight / Occclusion parameters
   lightMode: 'disabled', // disabled, spotlight, veil
@@ -73,6 +76,9 @@ const presets = {
     centerFade: 0,
     fieldColor: '#5e66ff',
     fieldOpacity: 15,
+    showFieldOutlines: true,
+    fieldOutlineStyle: 'dashed',
+    fieldOutlineDashSize: 8,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
@@ -100,6 +106,9 @@ const presets = {
     centerFade: 0,
     fieldColor: '#00f0ff',
     fieldOpacity: 10,
+    showFieldOutlines: true,
+    fieldOutlineStyle: 'solid',
+    fieldOutlineDashSize: 8,
     lightMode: 'disabled',
     lightRadius: 200,
     lightSoftness: 100,
@@ -127,6 +136,9 @@ const presets = {
     centerFade: 35,
     fieldColor: '#ff5e97',
     fieldOpacity: 25,
+    showFieldOutlines: true,
+    fieldOutlineStyle: 'dashed',
+    fieldOutlineDashSize: 12,
     lightMode: 'veil', // Eclipses starfield near singularity core
     lightRadius: 220,
     lightSoftness: 140,
@@ -154,6 +166,9 @@ const presets = {
     centerFade: 15,
     fieldColor: '#a55eff',
     fieldOpacity: 20,
+    showFieldOutlines: true,
+    fieldOutlineStyle: 'dashed',
+    fieldOutlineDashSize: 6,
     lightMode: 'spotlight', // Lights up the galaxy swirl around cursor
     lightRadius: 250,
     lightSoftness: 100,
@@ -589,6 +604,9 @@ function drawInteractiveOverlays() {
   const fieldOpacityBase = settings.fieldOpacity * (mouse.isDown ? 2.0 : 1.0) * mouse.sizeMultiplier;
   const rgb = hexToRgb(settings.fieldColor);
 
+  const dashSize = settings.fieldOutlineDashSize;
+  const dashPattern = settings.fieldOutlineStyle === 'dashed' ? [dashSize, dashSize * 2] : [];
+
   // 1. Draw Force Field boundary glow (Repel / Attract Potential Wells)
   if (settings.forceType !== 'none') {
     const fieldRad = settings.forceRadius * pulseScale;
@@ -604,23 +622,25 @@ function drawInteractiveOverlays() {
     ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
     ctx.fill();
     
-    // stable orbit vector ring (accretion horizon)
-    if ((settings.forceType === 'attract' || settings.forceType === 'vortex') && stableRad > 0) {
-      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.8})`;
-      ctx.lineWidth = 1.0;
-      ctx.setLineDash([2, 6]);
-      ctx.beginPath();
-      ctx.arc(mouse.x, mouse.y, stableRad, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    if (settings.showFieldOutlines) {
+      // stable orbit vector ring (accretion horizon)
+      if ((settings.forceType === 'attract' || settings.forceType === 'vortex') && stableRad > 0) {
+        ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.8})`;
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize * 0.5, dashSize * 1.5] : []);
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, stableRad, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
-    // Outer gravity boundary
-    ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.4})`;
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
-    ctx.stroke();
+      // Outer gravity boundary
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${fieldOpacityBase * 0.4})`;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash(dashPattern);
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, fieldRad, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 
   // 2. Cosmic Spotlight boundary helper overlays
@@ -628,21 +648,21 @@ function drawInteractiveOverlays() {
     const lightRad = settings.lightRadius;
     const softness = settings.lightSoftness;
     
-    ctx.strokeStyle = settings.lightMode === 'spotlight' ? `rgba(0, 255, 120, ${opacityBase * 0.25})` : `rgba(255, 50, 50, ${opacityBase * 0.25})`;
-    ctx.lineWidth = 0.5;
-    ctx.setLineDash([3, 10]);
-    
-    // Light inner core
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, Math.max(10, lightRad - softness / 2), 0, Math.PI * 2);
-    ctx.stroke();
-    
-    // Light outer boundary
-    ctx.beginPath();
-    ctx.arc(mouse.x, mouse.y, lightRad + softness / 2, 0, Math.PI * 2);
-    ctx.stroke();
-    
-    ctx.setLineDash([]);
+    if (settings.showFieldOutlines) {
+      ctx.strokeStyle = settings.lightMode === 'spotlight' ? `rgba(0, 255, 120, ${opacityBase * 0.25})` : `rgba(255, 50, 50, ${opacityBase * 0.25})`;
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize * 0.5, dashSize * 2.0] : []);
+      
+      // Light inner core
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, Math.max(10, lightRad - softness / 2), 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Light outer boundary
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, lightRad + softness / 2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
 
   // 3. Chromatic Aberration scope ring
@@ -650,17 +670,19 @@ function drawInteractiveOverlays() {
     const abRad = settings.aberrationRadius;
     const abWidth = settings.aberrationWidth;
 
-    ctx.strokeStyle = `rgba(255, 255, 255, ${opacityBase * 0.35})`;
-    ctx.lineWidth = 0.8;
-    ctx.setLineDash([4, 12]);
-    
-    ctx.save();
-    ctx.translate(mouse.x, mouse.y);
-    ctx.rotate(Date.now() * 0.0003);
-    ctx.beginPath();
-    ctx.arc(0, 0, abRad, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
+    if (settings.showFieldOutlines) {
+      ctx.strokeStyle = `rgba(255, 255, 255, ${opacityBase * 0.35})`;
+      ctx.lineWidth = 0.8;
+      ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize, dashSize * 3.0] : []);
+      
+      ctx.save();
+      ctx.translate(mouse.x, mouse.y);
+      ctx.rotate(Date.now() * 0.0003);
+      ctx.beginPath();
+      ctx.arc(0, 0, abRad, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     
     ctx.setLineDash([]);
 
@@ -858,6 +880,11 @@ function applySettingsToUI() {
   document.getElementById('field-color').value = settings.fieldColor;
   document.getElementById('val-field-color').innerText = settings.fieldColor.toUpperCase();
 
+  document.getElementById('show-outlines').checked = settings.showFieldOutlines;
+  document.getElementById('outline-style').value = settings.fieldOutlineStyle;
+  document.getElementById('outline-dash').value = settings.fieldOutlineDashSize;
+  document.getElementById('val-outline-dash').innerText = `${settings.fieldOutlineDashSize}px`;
+
   document.getElementById('light-mode').value = settings.lightMode;
   document.getElementById('light-radius').value = settings.lightRadius;
   document.getElementById('val-light-radius').innerText = `${settings.lightRadius}px`;
@@ -885,6 +912,20 @@ function applySettingsToUI() {
   } else {
     stableGroup.classList.add('hidden');
     centerFadeGroup.classList.add('hidden');
+  }
+
+  const oStyleGroup = document.getElementById('outline-style-group');
+  const oDashGroup = document.getElementById('outline-dash-group');
+  if (settings.showFieldOutlines) {
+    oStyleGroup.classList.remove('hidden');
+    if (settings.fieldOutlineStyle === 'dashed') {
+      oDashGroup.classList.remove('hidden');
+    } else {
+      oDashGroup.classList.add('hidden');
+    }
+  } else {
+    oStyleGroup.classList.add('hidden');
+    oDashGroup.classList.add('hidden');
   }
 
   const lRadiusGroup = document.getElementById('light-radius-group');
@@ -939,6 +980,14 @@ function bindUIControls() {
 
   const sFieldColor = document.getElementById('field-color');
   const vFieldColor = document.getElementById('val-field-color');
+
+  const tShowOutlines = document.getElementById('show-outlines');
+  const sOutlineStyle = document.getElementById('outline-style');
+  const sOutlineDash = document.getElementById('outline-dash');
+  const vOutlineDash = document.getElementById('val-outline-dash');
+  
+  const outlineStyleGroup = document.getElementById('outline-style-group');
+  const outlineDashGroup = document.getElementById('outline-dash-group');
 
   const lMode = document.getElementById('light-mode');
   const sLightRad = document.getElementById('light-radius');
@@ -1047,6 +1096,35 @@ function bindUIControls() {
     vFieldColor.innerText = settings.fieldColor.toUpperCase();
   });
 
+  const updateOutlineUIVisibility = () => {
+    if (settings.showFieldOutlines) {
+      outlineStyleGroup.classList.remove('hidden');
+      if (settings.fieldOutlineStyle === 'dashed') {
+        outlineDashGroup.classList.remove('hidden');
+      } else {
+        outlineDashGroup.classList.add('hidden');
+      }
+    } else {
+      outlineStyleGroup.classList.add('hidden');
+      outlineDashGroup.classList.add('hidden');
+    }
+  };
+
+  tShowOutlines.addEventListener('change', (e) => {
+    settings.showFieldOutlines = e.target.checked;
+    updateOutlineUIVisibility();
+  });
+
+  sOutlineStyle.addEventListener('change', (e) => {
+    settings.fieldOutlineStyle = e.target.value;
+    updateOutlineUIVisibility();
+  });
+
+  sOutlineDash.addEventListener('input', (e) => {
+    settings.fieldOutlineDashSize = parseInt(e.target.value);
+    vOutlineDash.innerText = `${settings.fieldOutlineDashSize}px`;
+  });
+
   const updateLightUIVisibility = (val) => {
     if (val === 'disabled') {
       lRadiusGroup.classList.add('hidden');
@@ -1143,6 +1221,7 @@ function bindUIControls() {
 
   // Initial runs
   updateForceUIVisibility(settings.forceType);
+  updateOutlineUIVisibility();
   updateLightUIVisibility(settings.lightMode);
 }
 
