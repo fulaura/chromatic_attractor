@@ -452,6 +452,27 @@ input:checked + .slider:before {
   }
 }
 
+/* Frosted Glass Zoom Portal Overlay */
+.zoom-lens-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 2; /* Sandwiched: just above canvas, below HUD controls (z-index 9/10) */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.22s ease;
+  opacity: 0;
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.05);
+}
+.zoom-lens-glass.active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
 /* Dynamic display utilities */
 .control-group.hidden, .toggle-group.hidden, .section.hidden {
   display: none !important;

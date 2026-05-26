@@ -15,6 +15,9 @@
   <!-- The Physics Engine Canvas -->
   <canvas id="cosmic-canvas"></canvas>
 
+  <!-- Frosted Glass Zoom Lens CSS Overlay Portal -->
+  <div class="zoom-lens-glass" id="zoom-glass-overlay"></div>
+
   <!-- Toggle Panel Trigger (shown when control panel is minimized) -->
   <button class="toggle-panel-trigger" id="panel-trigger">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -395,6 +398,18 @@
           </label>
         </div>
 
+        <div class="control-group" id="zoom-profile-group">
+          <div class="control-label">
+            <span>Refraction Profile</span>
+          </div>
+          <select id="zoom-profile">
+            <option value="optical">Convex Optical Lens</option>
+            <option value="gravitational">Einstein Relativistic Lens</option>
+            <option value="pinch">Fish-eye Pinch Lens</option>
+            <option value="prismatic">Prismatic Bug-Eye Grid</option>
+          </select>
+        </div>
+
         <div class="control-group" id="zoom-radius-group">
           <div class="control-label">
             <span>Lens Radius</span>
@@ -409,6 +424,74 @@
             <span class="control-value" id="val-zoom-multiplier">1.5x</span>
           </div>
           <input type="range" id="zoom-multiplier" min="0.4" max="3.0" step="0.1" value="1.5">
+        </div>
+
+        <div class="control-group" id="zoom-dispersion-group">
+          <div class="control-label">
+            <span>Color Dispersion</span>
+            <span class="control-value" id="val-zoom-dispersion">15%</span>
+          </div>
+          <input type="range" id="zoom-dispersion" min="0" max="100" step="1" value="15">
+        </div>
+
+        <div class="control-group" id="zoom-aspect-group">
+          <div class="control-label">
+            <span>Aspect Ratio</span>
+            <span class="control-value" id="val-zoom-aspect">1.0</span>
+          </div>
+          <input type="range" id="zoom-aspect" min="0.5" max="2.0" step="0.05" value="1.0">
+        </div>
+
+        <div class="toggle-group" id="zoom-elongation-group">
+          <div class="control-label">
+            <span>Speed Elongation</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="zoom-elongation" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="control-group" id="zoom-elongation-str-group">
+          <div class="control-label">
+            <span>Elongation Strength</span>
+            <span class="control-value" id="val-zoom-elongation-str">0.4x</span>
+          </div>
+          <input type="range" id="zoom-elongation-str" min="0.0" max="1.5" step="0.05" value="0.4">
+        </div>
+
+        <div class="control-group" id="zoom-blur-group">
+          <div class="control-label">
+            <span>Frosted Blur</span>
+            <span class="control-value" id="val-zoom-blur">6px</span>
+          </div>
+          <input type="range" id="zoom-blur" min="0" max="25" step="1" value="6">
+        </div>
+
+        <div class="control-group" id="zoom-tint-opacity-group">
+          <div class="control-label">
+            <span>Glass Tint Opacity</span>
+            <span class="control-value" id="val-zoom-tint-opacity">4%</span>
+          </div>
+          <input type="range" id="zoom-tint-opacity" min="0" max="50" step="1" value="4">
+        </div>
+
+        <div class="control-group" id="zoom-tint-color-group">
+          <div class="control-label">
+            <span>Glass Tint Color</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
+            <input type="color" id="zoom-tint-color" value="#ffffff" style="
+              border: 1px solid rgba(255,255,255,0.1);
+              padding: 0;
+              width: 36px;
+              height: 24px;
+              border-radius: 4px;
+              background: none;
+              cursor: pointer;
+            ">
+            <span id="val-zoom-tint-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#FFFFFF</span>
+          </div>
         </div>
 
         <div class="toggle-group" id="show-zoom-outline-group">
