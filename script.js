@@ -506,11 +506,13 @@ class Particle {
         if (zMult > 0.01) {
           const t = dist / zRad; // normalized distance: 0 to 1
           // Refractive lens zoom profile interpolation (smooth quartic bezier curve)
-          const factor = 1 + (1 / zMult - 1) * Math.pow(1 - t * t, 2);
+          // We use (zMult - 1) so that zMult > 1 expands space/sizes (magnification)
+          // and zMult < 1 compresses space/sizes (minification) symmetrically.
+          const factor = 1 + (zMult - 1) * Math.pow(1 - t * t, 2);
           
           renderX = mouse.x + dx * factor;
           renderY = mouse.y + dy * factor;
-          currentSize = currentSize * (1 / factor);
+          currentSize = currentSize * factor;
         }
       }
     }
