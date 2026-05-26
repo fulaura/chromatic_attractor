@@ -1,3 +1,7 @@
+const canvas = document.getElementById('cosmic-canvas');
+const ctx = canvas.getContext('2d');
+const nebula = document.getElementById('nebula');
+
 function hexToRgb(hex) {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
