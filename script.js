@@ -49,6 +49,7 @@ const settings = {
   showAberrationOutline: true, // Show aberration indicator outline
   aberrationOutlineColor: '#ffffff', // Visual overlay outline color
   aberrationOutlineOpacity: 0.35, // Visual overlay outline opacity
+  bgColor: '#020206', // Cosmic backdrop space-time color
 
   warpActive: false, // Starburst radial flow
   colorTheme: 'deep-space' // deep-space, neon-swarm, monochrome
@@ -101,7 +102,8 @@ const presets = {
     aberrationOutlineOpacity: 0.35,
     warpActive: false,
     colorTheme: 'deep-space',
-    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)'
+    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)',
+    bgColor: '#020206'
   },
   'warp-drive': {
     starCount: 500,
@@ -136,7 +138,8 @@ const presets = {
     aberrationOutlineOpacity: 0.30,
     warpActive: true,
     colorTheme: 'warp',
-    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, rgba(0, 0, 0, 0) 80%)'
+    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, rgba(0, 0, 0, 0) 80%)',
+    bgColor: '#010510'
   },
   'black-hole': {
     starCount: 400,
@@ -171,7 +174,8 @@ const presets = {
     aberrationOutlineOpacity: 0.40,
     warpActive: false,
     colorTheme: 'monochrome',
-    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)'
+    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)',
+    bgColor: '#000000'
   },
   'nebula-vortex': {
     starCount: 450,
@@ -206,7 +210,8 @@ const presets = {
     aberrationOutlineOpacity: 0.35,
     warpActive: false,
     colorTheme: 'neon-swarm',
-    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)'
+    nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)',
+    bgColor: '#030108'
   }
 };
 
@@ -883,6 +888,10 @@ function applySettingsToUI() {
 
   document.getElementById('twinkle-active').checked = settings.twinkleActive;
 
+  document.getElementById('bg-color').value = settings.bgColor || '#020206';
+  document.getElementById('val-bg-color').innerText = (settings.bgColor || '#020206').toUpperCase();
+  document.documentElement.style.setProperty('--bg-color', settings.bgColor || '#020206');
+
   document.getElementById('force-type').value = settings.forceType;
   document.getElementById('force-strength').value = settings.forceStrength;
   document.getElementById('val-force-strength').innerText = settings.forceStrength.toFixed(1);
@@ -1033,6 +1042,8 @@ function bindUIControls() {
   const sBaseSpeed = document.getElementById('base-speed');
   const vBaseSpeed = document.getElementById('val-base-speed');
   const tTwinkle = document.getElementById('twinkle-active');
+  const sBgColor = document.getElementById('bg-color');
+  const vBgColor = document.getElementById('val-bg-color');
   
   const fType = document.getElementById('force-type');
   const sForceStr = document.getElementById('force-strength');
@@ -1130,6 +1141,12 @@ function bindUIControls() {
 
   tTwinkle.addEventListener('change', (e) => {
     settings.twinkleActive = e.target.checked;
+  });
+
+  sBgColor.addEventListener('input', (e) => {
+    settings.bgColor = e.target.value;
+    vBgColor.innerText = settings.bgColor.toUpperCase();
+    document.documentElement.style.setProperty('--bg-color', settings.bgColor);
   });
 
   // Dynamic collapsible menu bindings
@@ -1502,7 +1519,8 @@ function bindPanelToggles() {
 // Main Frame physics & draw Loop
 function loop() {
   if (settings.warpActive) {
-    ctx.fillStyle = 'rgba(2, 2, 6, 0.12)';
+    const bgRgb = hexToRgb(settings.bgColor || '#020206');
+    ctx.fillStyle = `rgba(${bgRgb.r}, ${bgRgb.g}, ${bgRgb.b}, 0.12)`;
     ctx.fillRect(0, 0, width, height);
   } else {
     ctx.clearRect(0, 0, width, height);

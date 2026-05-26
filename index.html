@@ -85,6 +85,24 @@
           <input type="range" id="base-speed" min="0.0" max="5.0" step="0.1" value="0.4">
         </div>
 
+        <div class="control-group">
+          <div class="control-label">
+            <span>Background Color</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; padding: 4px 0;">
+            <input type="color" id="bg-color" value="#020206" style="
+              border: 1px solid rgba(255,255,255,0.1);
+              padding: 0;
+              width: 36px;
+              height: 24px;
+              border-radius: 4px;
+              background: none;
+              cursor: pointer;
+            ">
+            <span id="val-bg-color" style="font-family: monospace; font-size: 11px; color: var(--text-secondary);">#020206</span>
+          </div>
+        </div>
+
         <div class="toggle-group">
           <div class="control-label">
             <span>Twinkle Effect</span>

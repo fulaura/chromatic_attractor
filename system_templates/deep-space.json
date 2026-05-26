@@ -31,5 +31,6 @@
   "aberrationOutlineOpacity": 0.35,
   "warpActive": false,
   "colorTheme": "deep-space",
-  "nebulaColor": "radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)"
+  "nebulaColor": "radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)",
+  "bgColor": "#020206"
 }
