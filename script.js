@@ -43,6 +43,7 @@ const settings = {
   aberrationColor: 'rgb', // rgb, cyberpunk, supernova
   aberrationRadius: 120,
   aberrationWidth: 60,
+  aberrationRingColor: '#ffffff', // Custom HUD aberration indicator ring color
   aberrationSplit: 8, // Master Shift Strength
 
   warpActive: false, // Starburst radial flow
@@ -88,6 +89,7 @@ const presets = {
     aberrationColor: 'rgb',
     aberrationRadius: 120,
     aberrationWidth: 60,
+    aberrationRingColor: '#ffffff',
     aberrationSplit: 8,
     warpActive: false,
     colorTheme: 'deep-space',
@@ -118,6 +120,7 @@ const presets = {
     aberrationColor: 'cyberpunk',
     aberrationRadius: 200,
     aberrationWidth: 80,
+    aberrationRingColor: '#00f0ff',
     aberrationSplit: 12,
     warpActive: true,
     colorTheme: 'warp',
@@ -148,6 +151,7 @@ const presets = {
     aberrationColor: 'supernova',
     aberrationRadius: 140,
     aberrationWidth: 100,
+    aberrationRingColor: '#ff5e97',
     aberrationSplit: 18,
     warpActive: false,
     colorTheme: 'monochrome',
@@ -178,6 +182,7 @@ const presets = {
     aberrationColor: 'cyberpunk',
     aberrationRadius: 160,
     aberrationWidth: 80,
+    aberrationRingColor: '#a55eff',
     aberrationSplit: 10,
     warpActive: false,
     colorTheme: 'neon-swarm',
@@ -669,9 +674,10 @@ function drawInteractiveOverlays() {
   if (settings.aberrationActive) {
     const abRad = settings.aberrationRadius;
     const abWidth = settings.aberrationWidth;
+    const abRgb = hexToRgb(settings.aberrationRingColor);
 
     if (settings.showFieldOutlines) {
-      ctx.strokeStyle = `rgba(255, 255, 255, ${opacityBase * 0.35})`;
+      ctx.strokeStyle = `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, ${opacityBase * 0.55})`;
       ctx.lineWidth = 0.8;
       ctx.setLineDash(settings.fieldOutlineStyle === 'dashed' ? [dashSize, dashSize * 3.0] : []);
       
@@ -691,19 +697,9 @@ function drawInteractiveOverlays() {
       mouse.x, mouse.y, abRad + abWidth / 2
     );
     
-    if (settings.aberrationColor === 'cyberpunk') {
-      ringGrad.addColorStop(0, 'rgba(0, 255, 255, 0)');
-      ringGrad.addColorStop(0.5, `rgba(255, 0, 255, ${opacityBase * 0.12})`);
-      ringGrad.addColorStop(1, 'rgba(0, 255, 255, 0)');
-    } else if (settings.aberrationColor === 'supernova') {
-      ringGrad.addColorStop(0, 'rgba(255, 200, 0, 0)');
-      ringGrad.addColorStop(0.5, `rgba(180, 0, 255, ${opacityBase * 0.15})`);
-      ringGrad.addColorStop(1, 'rgba(255, 200, 0, 0)');
-    } else {
-      ringGrad.addColorStop(0, 'rgba(0, 240, 255, 0)');
-      ringGrad.addColorStop(0.5, `rgba(255, 255, 255, ${opacityBase * 0.12})`);
-      ringGrad.addColorStop(1, 'rgba(255, 94, 151, 0)');
-    }
+    ringGrad.addColorStop(0, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, 0)`);
+    ringGrad.addColorStop(0.5, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, ${opacityBase * 0.16})`);
+    ringGrad.addColorStop(1, `rgba(${abRgb.r}, ${abRgb.g}, ${abRgb.b}, 0)`);
     
     ctx.fillStyle = ringGrad;
     ctx.beginPath();
@@ -900,6 +896,8 @@ function applySettingsToUI() {
   document.getElementById('val-aberration-radius').innerText = `${settings.aberrationRadius}px`;
   document.getElementById('aberration-width').value = settings.aberrationWidth;
   document.getElementById('val-aberration-width').innerText = `${settings.aberrationWidth}px`;
+  document.getElementById('aberration-ring-color').value = settings.aberrationRingColor;
+  document.getElementById('val-aberration-ring-color').innerText = settings.aberrationRingColor.toUpperCase();
   document.getElementById('aberration-split').value = settings.aberrationSplit;
   document.getElementById('val-aberration-split').innerText = `${settings.aberrationSplit}px`;
 
@@ -1008,6 +1006,8 @@ function bindUIControls() {
   const vAberrationRad = document.getElementById('val-aberration-radius');
   const sAberrationWidth = document.getElementById('aberration-width');
   const vAberrationWidth = document.getElementById('val-aberration-width');
+  const sAberrationRingColor = document.getElementById('aberration-ring-color');
+  const vAberrationRingColor = document.getElementById('val-aberration-ring-color');
   const sAberrationSplit = document.getElementById('aberration-split');
   const vAberrationSplit = document.getElementById('val-aberration-split');
 
@@ -1178,6 +1178,11 @@ function bindUIControls() {
   sAberrationWidth.addEventListener('input', (e) => {
     settings.aberrationWidth = parseInt(e.target.value);
     vAberrationWidth.innerText = `${settings.aberrationWidth}px`;
+  });
+
+  sAberrationRingColor.addEventListener('input', (e) => {
+    settings.aberrationRingColor = e.target.value;
+    vAberrationRingColor.innerText = settings.aberrationRingColor.toUpperCase();
   });
 
   sAberrationSplit.addEventListener('input', (e) => {
