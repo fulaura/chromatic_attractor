@@ -581,6 +581,7 @@ function drawInteractiveOverlays() {
   if (mouse.x === undefined || mouse.y === undefined) return;
   
   const pulseScale = 1.0 + Math.sin(Date.now() * 0.003) * 0.03;
+  const opacityBase = mouse.isDown ? 0.35 : 0.15;
   const fieldOpacityBase = settings.fieldOpacity * (mouse.isDown ? 2.0 : 1.0) * mouse.sizeMultiplier;
   const rgb = hexToRgb(settings.fieldColor);
 
