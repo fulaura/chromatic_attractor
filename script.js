@@ -53,6 +53,7 @@ const settings = {
 
   // Refractive Zoom Lens parameters
   zoomActive: true, // Local refractive zoom lens active
+  showZoomGlass: true, // Show visual frosted backing glass overlay
   zoomProfile: 'optical', // optical, gravitational, pinch, prismatic
   zoomRadius: 150, // Radius of the lens
   zoomMultiplier: 1.5, // Refractive magnification strength
@@ -121,6 +122,7 @@ const presets = {
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)',
     bgColor: '#020206',
     zoomActive: true,
+    showZoomGlass: true,
     zoomProfile: 'optical',
     zoomRadius: 150,
     zoomMultiplier: 1.5,
@@ -171,6 +173,7 @@ const presets = {
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.05) 0%, rgba(0, 0, 0, 0) 80%)',
     bgColor: '#010510',
     zoomActive: false,
+    showZoomGlass: true,
     zoomProfile: 'optical',
     zoomRadius: 120,
     zoomMultiplier: 1.8,
@@ -221,6 +224,7 @@ const presets = {
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 94, 151, 0.02) 0%, rgba(0, 0, 0, 0) 60%)',
     bgColor: '#000000',
     zoomActive: true,
+    showZoomGlass: true,
     zoomProfile: 'gravitational',
     zoomRadius: 180,
     zoomMultiplier: 2.2,
@@ -271,6 +275,7 @@ const presets = {
     nebulaColor: 'radial-gradient(circle at 50% 50%, rgba(255, 0, 255, 0.04) 0%, rgba(0, 0, 255, 0.04) 70%)',
     bgColor: '#030108',
     zoomActive: true,
+    showZoomGlass: true,
     zoomProfile: 'prismatic',
     zoomRadius: 140,
     zoomMultiplier: 1.4,
@@ -964,10 +969,12 @@ function drawInteractiveOverlays() {
     lensGrad.addColorStop(0.8, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.04})`);
     lensGrad.addColorStop(1, `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase * 0.15})`);
     
-    ctx.fillStyle = lensGrad;
-    ctx.beginPath();
-    ctx.arc(0, 0, zRad, 0, Math.PI * 2);
-    ctx.fill();
+    if (settings.showZoomGlass !== false) {
+      ctx.fillStyle = lensGrad;
+      ctx.beginPath();
+      ctx.arc(0, 0, zRad, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     if (settings.showFieldOutlines && (settings.showZoomOutline !== false)) {
       ctx.strokeStyle = `rgba(${zOutRgb.r}, ${zOutRgb.g}, ${zOutRgb.b}, ${zOutOpacityBase})`;
@@ -1273,6 +1280,7 @@ function applySettingsToUI() {
 
   // Sync Zoom Lens UI overlays controls with default fallbacks
   document.getElementById('zoom-active').checked = settings.zoomActive !== undefined ? settings.zoomActive : true;
+  document.getElementById('show-zoom-glass').checked = settings.showZoomGlass !== undefined ? settings.showZoomGlass : true;
   document.getElementById('zoom-profile').value = settings.zoomProfile || 'optical';
   document.getElementById('zoom-radius').value = settings.zoomRadius !== undefined ? settings.zoomRadius : 150;
   document.getElementById('val-zoom-radius').innerText = `${settings.zoomRadius !== undefined ? settings.zoomRadius : 150}px`;
@@ -1314,6 +1322,7 @@ function applySettingsToUI() {
   document.getElementById('val-zoom-outline-color').innerText = (settings.zoomOutlineColor || '#ffffff').toUpperCase();
 
   // Zoom UI visibility panels
+  const zShowGlassGroup = document.getElementById('show-zoom-glass-group');
   const zProfileGroup = document.getElementById('zoom-profile-group');
   const zRadiusGroup = document.getElementById('zoom-radius-group');
   const zMultiplierGroup = document.getElementById('zoom-multiplier-group');
@@ -1329,17 +1338,24 @@ function applySettingsToUI() {
   const zOutlineColorGroup = document.getElementById('zoom-outline-color-group');
 
   const isZoomActive = settings.zoomActive !== undefined ? settings.zoomActive : true;
+  const isShowGlassActive = settings.showZoomGlass !== undefined ? settings.showZoomGlass : true;
   const isElongationActive = settings.zoomSpeedElongation !== undefined ? settings.zoomSpeedElongation : true;
   const isZoomOutlineActive = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
 
   const zGroups = [
-    zProfileGroup, zRadiusGroup, zMultiplierGroup, zDispersionGroup, 
-    zAspectGroup, zElongationGroup, zBlurGroup, zTintOpacityGroup, 
-    zTintColorGroup, zShowOutlineGroup
+    zShowGlassGroup, zProfileGroup, zRadiusGroup, zMultiplierGroup, zDispersionGroup, 
+    zAspectGroup, zElongationGroup, zShowOutlineGroup
   ];
 
   if (isZoomActive) {
     zGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+    
+    const glassStyleGroups = [zBlurGroup, zTintOpacityGroup, zTintColorGroup];
+    if (isShowGlassActive) {
+      glassStyleGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+    } else {
+      glassStyleGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+    }
     
     if (isElongationActive) {
       if (zElongationStrGroup) zElongationStrGroup.classList.remove('hidden');
@@ -1356,6 +1372,9 @@ function applySettingsToUI() {
     }
   } else {
     zGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+    zBlurGroup.classList.add('hidden');
+    zTintOpacityGroup.classList.add('hidden');
+    zTintColorGroup.classList.add('hidden');
     if (zElongationStrGroup) zElongationStrGroup.classList.add('hidden');
     if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
     if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
@@ -1454,6 +1473,7 @@ function bindUIControls() {
   const sZoomOutlineColor = document.getElementById('zoom-outline-color');
   const vZoomOutlineColor = document.getElementById('val-zoom-outline-color');
 
+  const tShowZoomGlass = document.getElementById('show-zoom-glass');
   const sZoomProfile = document.getElementById('zoom-profile');
   const sZoomDispersion = document.getElementById('zoom-dispersion');
   const vZoomDispersion = document.getElementById('val-zoom-dispersion');
@@ -1711,8 +1731,8 @@ function bindUIControls() {
     vAbOutlineColor.innerText = settings.aberrationOutlineColor.toUpperCase();
   });
 
-
   const updateZoomUIVisibility = () => {
+    const zShowGlassGroup = document.getElementById('show-zoom-glass-group');
     const zProfileGroup = document.getElementById('zoom-profile-group');
     const zRadiusGroup = document.getElementById('zoom-radius-group');
     const zMultiplierGroup = document.getElementById('zoom-multiplier-group');
@@ -1728,17 +1748,25 @@ function bindUIControls() {
     const zOutlineColorGroup = document.getElementById('zoom-outline-color-group');
 
     const isZActive = settings.zoomActive !== undefined ? settings.zoomActive : true;
+    const isShowGlassActive = settings.showZoomGlass !== undefined ? settings.showZoomGlass : true;
     const isElongActive = settings.zoomSpeedElongation !== undefined ? settings.zoomSpeedElongation : true;
     const isZOutActive = settings.showZoomOutline !== undefined ? settings.showZoomOutline : true;
 
     const zGroups = [
-      zProfileGroup, zRadiusGroup, zMultiplierGroup, zDispersionGroup, 
-      zAspectGroup, zElongationGroup, zBlurGroup, zTintOpacityGroup, 
-      zTintColorGroup, zShowOutlineGroup
+      zShowGlassGroup, zProfileGroup, zRadiusGroup, zMultiplierGroup, zDispersionGroup, 
+      zAspectGroup, zElongationGroup, zShowOutlineGroup
     ];
 
     if (isZActive) {
       zGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+      
+      const glassStyleGroups = [zBlurGroup, zTintOpacityGroup, zTintColorGroup];
+      if (isShowGlassActive) {
+        glassStyleGroups.forEach(g => { if (g) g.classList.remove('hidden'); });
+      } else {
+        glassStyleGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+      }
+      
       if (isElongActive) {
         if (zElongationStrGroup) zElongationStrGroup.classList.remove('hidden');
       } else {
@@ -1753,6 +1781,9 @@ function bindUIControls() {
       }
     } else {
       zGroups.forEach(g => { if (g) g.classList.add('hidden'); });
+      zBlurGroup.classList.add('hidden');
+      zTintOpacityGroup.classList.add('hidden');
+      zTintColorGroup.classList.add('hidden');
       if (zElongationStrGroup) zElongationStrGroup.classList.add('hidden');
       if (zOutlineOpacityGroup) zOutlineOpacityGroup.classList.add('hidden');
       if (zOutlineColorGroup) zOutlineColorGroup.classList.add('hidden');
@@ -1761,6 +1792,11 @@ function bindUIControls() {
 
   tZoomActive.addEventListener('change', (e) => {
     settings.zoomActive = e.target.checked;
+    updateZoomUIVisibility();
+  });
+
+  tShowZoomGlass.addEventListener('change', (e) => {
+    settings.showZoomGlass = e.target.checked;
     updateZoomUIVisibility();
   });
 
@@ -2016,7 +2052,7 @@ function loop() {
   // Position, scale, blur, and tint the hardware-accelerated CSS glass portal
   const glass = document.getElementById('zoom-glass-overlay');
   if (glass) {
-    if (settings.zoomActive && mouse.isActive && mouse.x !== undefined && mouse.y !== undefined) {
+    if (settings.zoomActive && settings.showZoomGlass !== false && mouse.isActive && mouse.x !== undefined && mouse.y !== undefined) {
       glass.classList.add('active');
       glass.style.left = `${mouse.x}px`;
       glass.style.top = `${mouse.y}px`;

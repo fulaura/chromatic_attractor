@@ -34,6 +34,7 @@
   "nebulaColor": "radial-gradient(circle at 50% 50%, rgba(94, 102, 255, 0.04) 0%, rgba(0, 0, 0, 0) 70%)",
   "bgColor": "#020206",
   "zoomActive": true,
+  "showZoomGlass": true,
   "zoomProfile": "optical",
   "zoomRadius": 150,
   "zoomMultiplier": 1.5,
